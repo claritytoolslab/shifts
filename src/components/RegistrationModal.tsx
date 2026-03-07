@@ -18,7 +18,6 @@ interface RegistrationForm {
   last_name: string
   email: string
   phone: string
-  ssn: string
   has_drivers_license: boolean
   has_tieturva: boolean
   has_hygiene_passport: boolean
@@ -75,7 +74,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       last_name: data.last_name.trim(),
       email: data.email.trim().toLowerCase(),
       phone: data.phone.trim(),
-      ssn: data.ssn.trim(),
+      ssn: '',
       has_drivers_license: data.has_drivers_license,
       has_tieturva: data.has_tieturva,
       has_hygiene_passport: data.has_hygiene_passport,
@@ -207,25 +206,6 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   placeholder="+358 40 123 4567"
                 />
                 {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
-              </div>
-
-              <div>
-                <label className="label">Henkilötunnus *</label>
-                <input
-                  {...register('ssn', {
-                    required: 'Henkilötunnus on pakollinen',
-                    pattern: {
-                      value: /^\d{6}[-+A]\d{3}[0-9A-FHJ-NPR-Y]$/i,
-                      message: 'Virheellinen henkilötunnus (esim. 010190-123A)'
-                    }
-                  })}
-                  className="input"
-                  placeholder="010190-123A"
-                />
-                {errors.ssn && <p className="text-red-500 text-sm mt-1">{errors.ssn.message}</p>}
-                <p className="text-xs text-gray-400 mt-1">
-                  Henkilötunnus tarvitaan henkilöllisyyden varmistamiseen. Tietoja käsitellään tietosuojalain mukaisesti.
-                </p>
               </div>
 
               {/* Pätevyydet */}
