@@ -1,0 +1,331 @@
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { supabase } from '../lib/supabase'
+import type { ShiftAvailability, Task, RegistrationInsert } from '../lib/database.types'
+import { X, CheckCircle, Clock, MapPin, AlertTriangle } from 'lucide-react'
+import { format } from 'date-fns'
+import { fi } from 'date-fns/locale'
+
+interface Props {
+  shift: ShiftAvailability
+  task: Task
+  onClose: () => void
+  onSuccess: () => void
+}
+
+interface RegistrationForm {
+  first_name: string
+  last_name: string
+  email: string
+  phone: string
+  ssn: string
+  has_drivers_license: boolean
+  has_tieturva: boolean
+  has_hygiene_passport: boolean
+  notes: string
+  confirm_requirements: boolean
+}
+
+export default function RegistrationModal({ shift, task, onClose, onSuccess }: Props) {
+  const [step, setStep] = useState<'form' | 'success'>('form')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegistrationForm>({
+    defaultValues: {
+      has_drivers_license: false,
+      has_tieturva: false,
+      has_hygiene_passport: false,
+    }
+  })
+
+  const hasRequirements =
+    task.requires_drivers_license ||
+    task.requires_tieturva ||
+    task.requires_hygiene_passport
+
+  async function onSubmit(data: RegistrationForm) {
+    setSaving(true)
+    setError('')
+
+    // Tarkista pätevyydet
+    if (task.requires_drivers_license && !data.has_drivers_license) {
+      setError('Tämä tehtävä vaatii B-ajokortin.')
+      setSaving(false)
+      return
+    }
+    if (task.requires_tieturva && !data.has_tieturva) {
+      setError('Tämä tehtävä vaatii Tieturva-kortin.')
+      setSaving(false)
+      return
+    }
+    if (task.requires_hygiene_passport && !data.has_hygiene_passport) {
+      setError('Tämä tehtävä vaatii hygieniapassin.')
+      setSaving(false)
+      return
+    }
+
+    const payload: RegistrationInsert = {
+      shift_id: shift.shift_id,
+      first_name: data.first_name.trim(),
+      last_name: data.last_name.trim(),
+      email: data.email.trim().toLowerCase(),
+      phone: data.phone.trim(),
+      ssn: data.ssn.trim(),
+      has_drivers_license: data.has_drivers_license,
+      has_tieturva: data.has_tieturva,
+      has_hygiene_passport: data.has_hygiene_passport,
+      notes: data.notes?.trim() || null,
+      status: 'confirmed',
+    }
+
+    const { error: insertError } = await supabase.from('registrations').insert(payload)
+
+    if (insertError) {
+      setError('Ilmoittautuminen epäonnistui. Yritä uudelleen.')
+      console.error(insertError)
+    } else {
+      setStep('success')
+    }
+    setSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+
+        {step === 'success' ? (
+          /* Onnistumisnäkymä */
+          <div className="p-8 text-center">
+            <CheckCircle size={56} className="mx-auto text-green-500 mb-4" />
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Ilmoittautuminen onnistui!</h3>
+            <p className="text-gray-500 mb-2">Olet ilmoittautunut vuoroon:</p>
+            <div className="bg-gray-50 rounded-lg p-4 text-left mb-6">
+              <div className="font-medium text-gray-900">{task.name}</div>
+              <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-1">
+                <Clock size={13} />
+                {format(new Date(shift.start_time), 'EEEE d.M.yyyy HH:mm', { locale: fi })}
+                {' – '}
+                {format(new Date(shift.end_time), 'HH:mm', { locale: fi })}
+              </div>
+              {shift.location && (
+                <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-0.5">
+                  <MapPin size={13} />
+                  {shift.location}
+                </div>
+              )}
+            </div>
+            <p className="text-sm text-gray-400 mb-6">
+              Vahvistus lähetetään antamaasi sähköpostiosoitteeseen.
+            </p>
+            <button onClick={onSuccess} className="btn-primary w-full">
+              Sulje
+            </button>
+          </div>
+        ) : (
+          /* Lomake */
+          <>
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Ilmoittaudu vuoroon</h3>
+                <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-0.5">
+                  <Clock size={13} />
+                  {format(new Date(shift.start_time), 'd.M.yyyy HH:mm', { locale: fi })}
+                  {' – '}
+                  {format(new Date(shift.end_time), 'HH:mm', { locale: fi })}
+                  {' · '}
+                  {task.name}
+                </div>
+              </div>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-4">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+              {/* Vaatimushälytys */}
+              {hasRequirements && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-amber-700 font-medium text-sm mb-2">
+                    <AlertTriangle size={16} />
+                    Tehtävä vaatii pätevyyksiä
+                  </div>
+                  <ul className="text-sm text-amber-600 space-y-1">
+                    {task.requires_drivers_license && <li>• B-ajokortti</li>}
+                    {task.requires_tieturva && <li>• Tieturva 1/2</li>}
+                    {task.requires_hygiene_passport && <li>• Hygieniapassi</li>}
+                    {task.other_requirements && <li>• {task.other_requirements}</li>}
+                  </ul>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Etunimi *</label>
+                  <input
+                    {...register('first_name', { required: 'Etunimi on pakollinen' })}
+                    className="input"
+                    placeholder="Matti"
+                  />
+                  {errors.first_name && <p className="text-red-500 text-sm mt-1">{errors.first_name.message}</p>}
+                </div>
+                <div>
+                  <label className="label">Sukunimi *</label>
+                  <input
+                    {...register('last_name', { required: 'Sukunimi on pakollinen' })}
+                    className="input"
+                    placeholder="Meikäläinen"
+                  />
+                  {errors.last_name && <p className="text-red-500 text-sm mt-1">{errors.last_name.message}</p>}
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Sähköposti *</label>
+                <input
+                  type="email"
+                  {...register('email', {
+                    required: 'Sähköposti on pakollinen',
+                    pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Virheellinen sähköpostiosoite' }
+                  })}
+                  className="input"
+                  placeholder="matti@esimerkki.fi"
+                />
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+              </div>
+
+              <div>
+                <label className="label">Puhelinnumero *</label>
+                <input
+                  type="tel"
+                  {...register('phone', { required: 'Puhelinnumero on pakollinen' })}
+                  className="input"
+                  placeholder="+358 40 123 4567"
+                />
+                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
+              </div>
+
+              <div>
+                <label className="label">Henkilötunnus *</label>
+                <input
+                  {...register('ssn', {
+                    required: 'Henkilötunnus on pakollinen',
+                    pattern: {
+                      value: /^\d{6}[-+A]\d{3}[0-9A-FHJ-NPR-Y]$/i,
+                      message: 'Virheellinen henkilötunnus (esim. 010190-123A)'
+                    }
+                  })}
+                  className="input"
+                  placeholder="010190-123A"
+                />
+                {errors.ssn && <p className="text-red-500 text-sm mt-1">{errors.ssn.message}</p>}
+                <p className="text-xs text-gray-400 mt-1">
+                  Henkilötunnus tarvitaan henkilöllisyyden varmistamiseen. Tietoja käsitellään tietosuojalain mukaisesti.
+                </p>
+              </div>
+
+              {/* Pätevyydet */}
+              <div>
+                <label className="label">Pätevyydet ja kortit (rasti mitä sinulla on)</label>
+                <div className="space-y-2 mt-1">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      {...register('has_drivers_license')}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <span>B-ajokortti</span>
+                    {task.requires_drivers_license && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-1.5 rounded">Vaaditaan</span>
+                    )}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      {...register('has_tieturva')}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <span>Tieturva 1/2</span>
+                    {task.requires_tieturva && (
+                      <span className="text-xs bg-orange-100 text-orange-700 px-1.5 rounded">Vaaditaan</span>
+                    )}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      {...register('has_hygiene_passport')}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <span>Hygieniapassi</span>
+                    {task.requires_hygiene_passport && (
+                      <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded">Vaaditaan</span>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Lisätietoja</label>
+                <textarea
+                  {...register('notes')}
+                  className="input"
+                  rows={2}
+                  placeholder="Muuta huomioitavaa..."
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    {...register('confirm_requirements', {
+                      required: 'Sinun täytyy vahvistaa tiedot'
+                    })}
+                    className="w-4 h-4 rounded border-gray-300 mt-0.5"
+                  />
+                  <span className="text-gray-600">
+                    Vahvistan, että antamani tiedot ovat oikeat ja minulla on tehtävässä vaaditut pätevyydet.
+                  </span>
+                </label>
+                {errors.confirm_requirements && (
+                  <p className="text-red-500 text-sm mt-1">{errors.confirm_requirements.message}</p>
+                )}
+              </div>
+
+              {error && (
+                <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary flex-1"
+                >
+                  {saving ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Ilmoittaudutaan...
+                    </span>
+                  ) : (
+                    'Ilmoittaudu vuoroon'
+                  )}
+                </button>
+                <button type="button" onClick={onClose} className="btn-secondary">
+                  Peruuta
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
