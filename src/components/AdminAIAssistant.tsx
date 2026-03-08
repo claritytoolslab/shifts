@@ -84,7 +84,7 @@ function saveMessages(msgs: Message[]) {
 export default function AdminAIAssistant({ context, onSaved, inline = false }: Props) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>(loadMessages)
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState(() => sessionStorage.getItem('ai-assistant-input') ?? '')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -102,6 +102,7 @@ export default function AdminAIAssistant({ context, onSaved, inline = false }: P
     const text = input.trim()
     if (!text || loading) return
     setInput('')
+    sessionStorage.removeItem('ai-assistant-input')
     setLoading(true)
 
     const userMsg: Message = { role: 'user', text }
@@ -365,6 +366,7 @@ export default function AdminAIAssistant({ context, onSaved, inline = false }: P
                   value={input}
                   onChange={e => {
                     setInput(e.target.value)
+                    sessionStorage.setItem('ai-assistant-input', e.target.value)
                     e.target.style.height = 'auto'
                     e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
                   }}
