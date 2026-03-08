@@ -140,7 +140,7 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
 
   useEffect(() => {
     if (context === 'tasks' || context === 'shifts') {
-      supabase.from('events').select('id, name, start_date').order('start_date', { ascending: false })
+      supabase.from('events').select('id, name, start_date, end_date').order('start_date', { ascending: false })
         .then(({ data }) => { if (data) setEvents(data as Event[]) })
     }
   }, [context])
@@ -175,6 +175,10 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
       const body: Record<string, string> = { prompt: text, context }
       if (selectedEventId) body.eventId = selectedEventId
       if (selectedTaskId) body.taskId = selectedTaskId
+      // Lisää tapahtuman päivämäärät kontekstiksi
+      const selectedEvent = events.find(e => e.id === selectedEventId)
+      if (selectedEvent?.start_date) body.eventStartDate = selectedEvent.start_date
+      if (selectedEvent?.end_date) body.eventEndDate = (selectedEvent as Event & { end_date: string }).end_date
 
       const res = await fetch('/.netlify/functions/ai-assist', {
         method: 'POST',

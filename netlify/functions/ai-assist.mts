@@ -54,7 +54,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { prompt, context, eventId, taskId } = JSON.parse(event.body ?? '{}')
+    const { prompt, context, eventId, taskId, eventStartDate, eventEndDate } = JSON.parse(event.body ?? '{}')
 
     if (!prompt || !context) {
       return {
@@ -73,8 +73,10 @@ export const handler: Handler = async (event) => {
 
     // Lisää kontekstitieto promptiin jos annettu
     let fullPrompt = prompt
-    if (eventId) fullPrompt = `[Tapahtuma ID: ${eventId}]\n${prompt}`
-    if (taskId) fullPrompt = `[Tehtävä ID: ${taskId}]\n${prompt}`
+    if (eventId) fullPrompt = `[Tapahtuma ID: ${eventId}]\n${fullPrompt}`
+    if (taskId) fullPrompt = `[Tehtävä ID: ${taskId}]\n${fullPrompt}`
+    if (eventStartDate && eventEndDate) fullPrompt = `[Tapahtuman päivät: ${eventStartDate} – ${eventEndDate}]\n${fullPrompt}`
+    else if (eventStartDate) fullPrompt = `[Tapahtuman aloituspäivä: ${eventStartDate}]\n${fullPrompt}`
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
