@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import AdminLayout from '../../components/AdminLayout'
@@ -23,6 +23,41 @@ export default function AdminEventDetail() {
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<TaskForm>()
   const watchedTeam = watch('team_name')
+
+  // Ryhmittely: kategoriat + joukkueet
+  const categoryGroups = useMemo(() => {
+    const map: Record<string, Task[]> = {}
+    // Ensin lisätään kaikki kategoriat (myös tyhjät)
+    allCategories.forEach(cat => { map[cat.name] = [] })
+    tasks.filter(t => t.is_open).forEach(task => {
+      const key = task.category || ''
+      if (key && map[key] !== undefined) {
+        map[key].push(task)
+      } else if (key) {
+        map[key] = [task]
+      } else {
+        // Ei kategoriaa → lisätään "Muut yleiset"
+        if (!map['Muut yleiset']) map['Muut yleiset'] = []
+        map['Muut yleiset'].push(task)
+      }
+    })
+    return map
+  }, [tasks, allCategories])
+
+  const teamGroups = useMemo(() => {
+    const map: Record<string, Task[]> = {}
+    // Ensin lisätään kaikki joukkueet (myös tyhjät)
+    allTeams.forEach(team => { map[team.name] = [] })
+    tasks.filter(t => !t.is_open).forEach(task => {
+      const key = task.team_name || 'Muu tiimi'
+      if (map[key] !== undefined) {
+        map[key].push(task)
+      } else {
+        map[key] = [task]
+      }
+    })
+    return map
+  }, [tasks, allTeams])
 
   useEffect(() => {
     if (eventId) fetchData()
@@ -292,75 +327,119 @@ export default function AdminEventDetail() {
           </div>
         )}
 
-        {tasks.length === 0 ? (
+        {tasks.length === 0 && allCategories.length === 0 && allTeams.length === 0 ? (
           <div className="card text-center py-12">
             <p className="text-gray-500">Ei tehtäviä. Luo ensimmäinen tehtävä!</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {tasks.map((task) => (
-              <div key={task.id} className="card">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900">{task.name}</h4>
-                    {task.description && (
-                      <p className="text-sm text-gray-500 mt-0.5">{task.description}</p>
-                    )}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${task.is_open ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {task.is_open ? 'Yleinen' : `Tiimi: ${task.team_name || '–'}`}
-                      </span>
-                      {task.category && (
-                        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
-                          {task.category}
-                        </span>
-                      )}
-                      {task.min_age && (
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                          Ikäraja: {task.min_age}v
-                        </span>
-                      )}
-                      {task.requires_drivers_license && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">B-kortti</span>
-                      )}
-                      {task.requires_tieturva && (
-                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">Tieturva</span>
-                      )}
-                      {task.requires_hygiene_passport && (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Hygieniapassi</span>
-                      )}
-                      {task.other_requirements && (
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                          {task.other_requirements}
-                        </span>
+          <div className="space-y-6">
+            {/* Yleiset tehtävät – kategorioittain */}
+            {Object.keys(categoryGroups).length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Yleiset tehtävät</h3>
+                <div className="space-y-2">
+                  {Object.entries(categoryGroups).map(([cat, catTasks]) => (
+                    <div key={cat} className="card p-0 overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                        <div>
+                          <span className="font-semibold text-gray-900">{cat}</span>
+                          <span className="ml-2 text-xs text-gray-400">{catTasks.length} tehtävää</span>
+                        </div>
+                      </div>
+                      {catTasks.length === 0 ? (
+                        <div className="px-4 py-3 text-sm text-gray-400 italic">Ei tehtäviä tässä kategoriassa</div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {catTasks.map(task => (
+                            <div key={task.id} className="flex items-center justify-between px-4 py-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 text-sm">{task.name}</p>
+                                {task.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{task.description}</p>}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {task.min_age && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{task.min_age}v+</span>}
+                                  {task.requires_drivers_license && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">B-kortti</span>}
+                                  {task.requires_tieturva && <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tieturva</span>}
+                                  {task.requires_hygiene_passport && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Hygieniapassi</span>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 ml-3 shrink-0">
+                                <Link
+                                  to={`/admin/tasks/${task.id}`}
+                                  className="flex items-center gap-1 text-sm text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors font-medium"
+                                >
+                                  Valitse
+                                  <ChevronRight size={14} />
+                                </Link>
+                                <button onClick={() => openEditForm(task)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg">
+                                  <Pencil size={14} />
+                                </button>
+                                <button onClick={() => deleteTask(task.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg">
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 ml-4">
-                    <Link
-                      to={`/admin/tasks/${task.id}`}
-                      className="flex items-center gap-1 text-sm text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      Vuorot
-                      <ChevronRight size={14} />
-                    </Link>
-                    <button
-                      onClick={() => openEditForm(task)}
-                      className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* Joukkuekohtaiset tehtävät */}
+            {Object.keys(teamGroups).length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Joukkuekohtaiset tehtävät</h3>
+                <div className="space-y-2">
+                  {Object.entries(teamGroups).map(([team, teamTasks]) => (
+                    <div key={team} className="card p-0 overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                        <div>
+                          <span className="font-semibold text-gray-900">{team}</span>
+                          <span className="ml-2 text-xs text-gray-400">{teamTasks.length} tehtävää</span>
+                        </div>
+                      </div>
+                      {teamTasks.length === 0 ? (
+                        <div className="px-4 py-3 text-sm text-gray-400 italic">Ei tehtäviä tässä joukkueessa</div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {teamTasks.map(task => (
+                            <div key={task.id} className="flex items-center justify-between px-4 py-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 text-sm">{task.name}</p>
+                                {task.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{task.description}</p>}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {task.min_age && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{task.min_age}v+</span>}
+                                  {task.requires_drivers_license && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">B-kortti</span>}
+                                  {task.requires_tieturva && <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tieturva</span>}
+                                  {task.requires_hygiene_passport && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Hygieniapassi</span>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 ml-3 shrink-0">
+                                <Link
+                                  to={`/admin/tasks/${task.id}`}
+                                  className="flex items-center gap-1 text-sm text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors font-medium"
+                                >
+                                  Valitse
+                                  <ChevronRight size={14} />
+                                </Link>
+                                <button onClick={() => openEditForm(task)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg">
+                                  <Pencil size={14} />
+                                </button>
+                                <button onClick={() => deleteTask(task.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg">
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
