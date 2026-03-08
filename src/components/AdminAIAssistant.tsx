@@ -92,11 +92,13 @@ const CONTEXT_PLACEHOLDERS: Record<AIContext, string> = {
   shifts: 'esim. "Luo 3 vuoroa lauantaille klo 8-18, 2 henkeä per vuoro"',
 }
 
-const STORAGE_KEY = 'ai-assistant-messages'
+function storageKey(context: AIContext) {
+  return `ai-assistant-messages-${context}`
+}
 
-function loadMessages(): Message[] {
+function loadMessages(context: AIContext): Message[] {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    const raw = sessionStorage.getItem(storageKey(context))
     if (!raw) return []
     const parsed = JSON.parse(raw)
     return parsed.map((m: Message) => ({
@@ -110,7 +112,7 @@ function loadMessages(): Message[] {
   } catch { return [] }
 }
 
-function saveMessages(msgs: Message[]) {
+function saveMessages(context: AIContext, msgs: Message[]) {
   try {
     const serializable = msgs.map(m => ({
       ...m,
@@ -120,14 +122,14 @@ function saveMessages(msgs: Message[]) {
       selectedTasks: m.selectedTasks ? Array.from(m.selectedTasks) : undefined,
       selectedShifts: m.selectedShifts ? Array.from(m.selectedShifts) : undefined,
     }))
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(serializable))
+    sessionStorage.setItem(storageKey(context), JSON.stringify(serializable))
   } catch { /* ignore */ }
 }
 
 export default function AdminAIAssistant({ context, onSaved, inline = false, eventId, taskId }: Props) {
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>(loadMessages)
-  const [input, setInput] = useState(() => sessionStorage.getItem('ai-assistant-input') ?? '')
+  const [messages, setMessages] = useState<Message[]>(() => loadMessages(context))
+  const [input, setInput] = useState(() => sessionStorage.getItem(`ai-assistant-input-${context}`) ?? '')
   const [loading, setLoading] = useState(false)
   const [events, setEvents] = useState<Event[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
@@ -155,15 +157,15 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
   }, [open])
 
   useEffect(() => {
-    saveMessages(messages)
+    saveMessages(context, messages)
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  }, [messages, loading, context])
 
   async function handleSend() {
     const text = input.trim()
     if (!text || loading) return
     setInput('')
-    sessionStorage.removeItem('ai-assistant-input')
+    sessionStorage.removeItem(`ai-assistant-input-${context}`)
     setLoading(true)
 
     const userMsg: Message = { role: 'user', text }
@@ -382,7 +384,7 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
               <div className="flex items-center gap-1">
                 {messages.length > 0 && (
                   <button
-                    onClick={() => { setMessages([]); sessionStorage.removeItem(STORAGE_KEY) }}
+                    onClick={() => { setMessages([]); sessionStorage.removeItem(storageKey(context)) }}
                     className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"
                     title="Tyhjennä chat"
                   >
@@ -574,7 +576,7 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
                   value={input}
                   onChange={e => {
                     setInput(e.target.value)
-                    sessionStorage.setItem('ai-assistant-input', e.target.value)
+                    sessionStorage.setItem(`ai-assistant-input-${context}`, e.target.value)
                     e.target.style.height = 'auto'
                     e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
                   }}
