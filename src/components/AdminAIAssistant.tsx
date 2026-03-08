@@ -133,6 +133,8 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
   const [loading, setLoading] = useState(false)
   const [events, setEvents] = useState<Event[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [allCategories, setAllCategories] = useState<string[]>([])
+  const [allTeams, setAllTeams] = useState<string[]>([])
   const [selectedEventId, setSelectedEventId] = useState(eventId ?? '')
   const [selectedTaskId, setSelectedTaskId] = useState(taskId ?? '')
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -142,6 +144,12 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
     if (context === 'tasks' || context === 'shifts') {
       supabase.from('events').select('id, name, start_date, end_date').order('start_date', { ascending: false })
         .then(({ data }) => { if (data) setEvents(data as Event[]) })
+    }
+    if (context === 'tasks') {
+      supabase.from('categories').select('name').order('name')
+        .then(({ data }) => { if (data) setAllCategories(data.map(c => c.name)) })
+      supabase.from('teams').select('name').order('name')
+        .then(({ data }) => { if (data) setAllTeams(data.map(t => t.name)) })
     }
   }, [context])
 
@@ -179,6 +187,11 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
       const selectedEvent = events.find(e => e.id === selectedEventId)
       if (selectedEvent?.start_date) body.eventStartDate = selectedEvent.start_date
       if (selectedEvent?.end_date) body.eventEndDate = (selectedEvent as Event & { end_date: string }).end_date
+      // Lähetä olemassa olevat kategoriat ja tiimit tehtäviä luodessa
+      if (context === 'tasks') {
+        if (allCategories.length > 0) body.availableCategories = allCategories.join(',')
+        if (allTeams.length > 0) body.availableTeams = allTeams.join(',')
+      }
 
       const res = await fetch('/.netlify/functions/ai-assist', {
         method: 'POST',

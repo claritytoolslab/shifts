@@ -54,7 +54,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { prompt, context, eventId, taskId, eventStartDate, eventEndDate } = JSON.parse(event.body ?? '{}')
+    const { prompt, context, eventId, taskId, eventStartDate, eventEndDate, availableCategories, availableTeams } = JSON.parse(event.body ?? '{}')
 
     if (!prompt || !context) {
       return {
@@ -77,6 +77,8 @@ export const handler: Handler = async (event) => {
     if (taskId) fullPrompt = `[Tehtävä ID: ${taskId}]\n${fullPrompt}`
     if (eventStartDate && eventEndDate) fullPrompt = `[Tapahtuman päivät: ${eventStartDate} – ${eventEndDate}]\n${fullPrompt}`
     else if (eventStartDate) fullPrompt = `[Tapahtuman aloituspäivä: ${eventStartDate}]\n${fullPrompt}`
+    if (availableCategories) fullPrompt = `[Sallitut kategoriat (käytä VAIN näitä, älä keksi uusia): ${availableCategories}]\n${fullPrompt}`
+    if (availableTeams) fullPrompt = `[Sallitut tiimit (käytä VAIN näitä, älä keksi uusia): ${availableTeams}]\n${fullPrompt}`
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
