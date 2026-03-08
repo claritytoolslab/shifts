@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Calendar, Users, LogOut, LayoutDashboard, Menu, X, Tags, Sparkles } from 'lucide-react'
+import { Calendar, Users, LogOut, LayoutDashboard, Menu, X, Tags, Sparkles, ExternalLink } from 'lucide-react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { signOut, user } = useAuth()
@@ -43,6 +43,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </nav>
 
       <div className="p-4 border-t border-gray-200">
+        <Link
+          to="/"
+          onClick={() => setSidebarOpen(false)}
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors mb-3"
+        >
+          <ExternalLink size={16} />
+          Avaa käyttäjänäkymä
+        </Link>
         <div className="text-xs text-gray-500 mb-3 truncate">{user?.email}</div>
         <button
           onClick={handleSignOut}
