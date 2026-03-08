@@ -68,10 +68,12 @@ export default function AdminEvents() {
     setSaving(true)
     setError('')
 
+    const payload = { ...data, is_active: Boolean(data.is_active) }
+
     if (editingEvent) {
       const { error } = await supabase
         .from('events')
-        .update({ ...data, updated_at: new Date().toISOString() })
+        .update({ ...payload, updated_at: new Date().toISOString() })
         .eq('id', editingEvent.id)
       if (error) {
         setError('Tallennus epäonnistui: ' + error.message)
@@ -80,7 +82,7 @@ export default function AdminEvents() {
         fetchEvents()
       }
     } else {
-      const { error } = await supabase.from('events').insert(data)
+      const { error } = await supabase.from('events').insert(payload)
       if (error) {
         setError('Luonti epäonnistui: ' + error.message)
       } else {
