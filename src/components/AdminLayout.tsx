@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Calendar, Users, LogOut, LayoutDashboard, Menu, X, Tags } from 'lucide-react'
+import { Calendar, Users, LogOut, LayoutDashboard, Menu, X, Tags, Sparkles } from 'lucide-react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { signOut, user } = useAuth()
@@ -19,6 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { path: '/admin/events', label: 'Tapahtumat', icon: Calendar },
     { path: '/admin/registrations', label: 'Ilmoittautumiset', icon: Users },
     { path: '/admin/categories', label: 'Kategoriat & Tiimit', icon: Tags },
+    { path: '/admin/ai', label: 'AI-assistentti', icon: Sparkles },
   ]
 
   const SidebarContent = () => (

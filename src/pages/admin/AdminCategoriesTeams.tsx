@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
-import AdminAIAssistant from '../../components/AdminAIAssistant'
 import { supabase } from '../../lib/supabase'
 import type { Category, Team } from '../../lib/database.types'
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
@@ -188,39 +187,31 @@ export default function AdminCategoriesTeams() {
 
   return (
     <AdminLayout>
-      <div className="flex gap-6 h-[calc(100vh-8rem)]">
-        {/* Vasen: Kategoriat & Tiimit */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Kategoriat & Tiimit</h2>
-            <p className="text-sm text-gray-500 mt-1">Globaalit listat tehtävien luokitteluun</p>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>
-          )}
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <ItemList
-              title="Kategoriat"
-              items={categories}
-              onAdd={addCategory}
-              onRename={renameCategory}
-              onDelete={deleteCategory}
-            />
-            <ItemList
-              title="Tiimit"
-              items={teams}
-              onAdd={addTeam}
-              onRename={renameTeam}
-              onDelete={deleteTeam}
-            />
-          </div>
+      <div>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Kategoriat & Tiimit</h2>
+          <p className="text-sm text-gray-500 mt-1">Globaalit listat tehtävien luokitteluun</p>
         </div>
 
-        {/* Oikea: AI-chat kiinteänä paneelina */}
-        <div className="w-80 shrink-0 flex flex-col border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-          <AdminAIAssistant context="categories_teams" onSaved={fetchAll} inline />
+        {error && (
+          <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>
+        )}
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <ItemList
+            title="Kategoriat"
+            items={categories}
+            onAdd={addCategory}
+            onRename={renameCategory}
+            onDelete={deleteCategory}
+          />
+          <ItemList
+            title="Tiimit"
+            items={teams}
+            onAdd={addTeam}
+            onRename={renameTeam}
+            onDelete={deleteTeam}
+          />
         </div>
       </div>
     </AdminLayout>
