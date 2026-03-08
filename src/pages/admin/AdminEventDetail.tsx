@@ -5,6 +5,7 @@ import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
 import type { Event, Task, TaskInsert, Category, Team } from '../../lib/database.types'
 import { Plus, Pencil, Trash2, ChevronRight, X, ArrowLeft } from 'lucide-react'
+import AdminAIAssistant from '../../components/AdminAIAssistant'
 
 type TaskForm = Omit<TaskInsert, 'id' | 'event_id' | 'created_at' | 'updated_at'>
 
@@ -363,6 +364,12 @@ export default function AdminEventDetail() {
           </div>
         )}
       </div>
+
+      <AdminAIAssistant
+        context="tasks"
+        eventId={eventId}
+        onSaved={fetchData}
+      />
     </AdminLayout>
   )
 }

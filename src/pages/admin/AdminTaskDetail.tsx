@@ -5,6 +5,7 @@ import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
 import type { Task, ShiftAvailability, Registration, ShiftInsert } from '../../lib/database.types'
 import { Plus, Trash2, X, ArrowLeft, Users, Clock } from 'lucide-react'
+import AdminAIAssistant from '../../components/AdminAIAssistant'
 import { format } from 'date-fns'
 import { fi } from 'date-fns/locale'
 
@@ -354,6 +355,13 @@ export default function AdminTaskDetail() {
           </div>
         )}
       </div>
+
+      <AdminAIAssistant
+        context="shifts"
+        eventId={taskWithEvent?.events?.id}
+        taskId={taskId}
+        onSaved={fetchData}
+      />
     </AdminLayout>
   )
 }
