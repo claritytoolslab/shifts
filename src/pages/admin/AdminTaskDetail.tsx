@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
 import type { Task, ShiftAvailability, Registration, Team } from '../../lib/database.types'
-import { Plus, Trash2, X, ArrowLeft, Users, Clock } from 'lucide-react'
+import { Plus, Trash2, X, ArrowLeft, Users, Clock, Pencil } from 'lucide-react'
 import AdminAIAssistant from '../../components/AdminAIAssistant'
 import { format, addDays, parseISO } from 'date-fns'
 import { fi } from 'date-fns/locale'
@@ -76,10 +76,28 @@ export default function AdminTaskDetail() {
   })
 
   const [form, setForm] = useState<ShiftFormState>(defaultForm())
+  const [editingShiftId, setEditingShiftId] = useState<string | null>(null)
 
   function setField(key: keyof ShiftFormState, value: string) {
     setForm(prev => ({ ...prev, [key]: value }))
     setFormErrors(prev => ({ ...prev, [key]: '' }))
+  }
+
+  function shiftToForm(shift: ShiftAvailability): ShiftFormState {
+    const st = new Date(shift.start_time)
+    const et = new Date(shift.end_time)
+    return {
+      teamName: shift.team_name ?? '',
+      startDay: format(st, 'yyyy-MM-dd'),
+      startHour: String(st.getHours()).padStart(2, '0'),
+      startMinute: String(Math.floor(st.getMinutes() / 15) * 15).padStart(2, '0'),
+      endDay: format(et, 'yyyy-MM-dd'),
+      endHour: String(et.getHours()).padStart(2, '0'),
+      endMinute: String(Math.floor(et.getMinutes() / 15) * 15).padStart(2, '0'),
+      maxParticipants: String(shift.max_participants),
+      location: shift.location ?? '',
+      notes: shift.notes ?? '',
+    }
   }
 
   useEffect(() => {
@@ -146,20 +164,29 @@ export default function AdminTaskDetail() {
     setSaving(true)
     setError('')
 
-    const { error } = await supabase.from('shifts').insert({
-      task_id: taskId!,
+    const payload = {
       start_time: startTime,
       end_time: endTime,
       max_participants: Number(form.maxParticipants),
       team_name: form.teamName || null,
       location: form.location || null,
       notes: form.notes || null,
-    })
+    }
 
-    if (error) {
-      setError('Luonti epäonnistui: ' + error.message)
+    let dbError
+    if (editingShiftId) {
+      const { error } = await supabase.from('shifts').update(payload).eq('id', editingShiftId)
+      dbError = error
+    } else {
+      const { error } = await supabase.from('shifts').insert({ ...payload, task_id: taskId! })
+      dbError = error
+    }
+
+    if (dbError) {
+      setError((editingShiftId ? 'Tallennus' : 'Luonti') + ' epäonnistui: ' + dbError.message)
     } else {
       setShowForm(false)
+      setEditingShiftId(null)
       fetchData()
     }
     setSaving(false)
@@ -169,6 +196,15 @@ export default function AdminTaskDetail() {
     setForm(defaultForm())
     setFormErrors({})
     setError('')
+    setEditingShiftId(null)
+    setShowForm(true)
+  }
+
+  function openEditForm(shift: ShiftAvailability) {
+    setForm(shiftToForm(shift))
+    setFormErrors({})
+    setError('')
+    setEditingShiftId(shift.shift_id)
     setShowForm(true)
   }
 
@@ -236,7 +272,7 @@ export default function AdminTaskDetail() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-6 border-b">
-                <h3 className="text-lg font-semibold">Uusi vuoro</h3>
+                <h3 className="text-lg font-semibold">{editingShiftId ? 'Muokkaa vuoroa' : 'Uusi vuoro'}</h3>
                 <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
                   <X size={20} />
                 </button>
@@ -374,7 +410,7 @@ export default function AdminTaskDetail() {
 
                 <div className="flex gap-3 pt-2">
                   <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
-                    {saving ? 'Luodaan...' : 'Luo vuoro'}
+                    {saving ? 'Tallennetaan...' : editingShiftId ? 'Tallenna muutokset' : 'Luo vuoro'}
                   </button>
                   <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
                     Peruuta
@@ -443,8 +479,16 @@ export default function AdminTaskDetail() {
                       Ilmoittautuneet
                     </button>
                     <button
+                      onClick={() => openEditForm(shift)}
+                      className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Muokkaa vuoroa"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
                       onClick={() => deleteShift(shift.shift_id)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Poista vuoro"
                     >
                       <Trash2 size={16} />
                     </button>

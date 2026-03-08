@@ -15,6 +15,7 @@ import AdminTaskDetail from './pages/admin/AdminTaskDetail'
 import AdminRegistrations from './pages/admin/AdminRegistrations'
 import AdminCategoriesTeams from './pages/admin/AdminCategoriesTeams'
 import AdminAI from './pages/admin/AdminAI'
+import AdminTeamTasks from './pages/admin/AdminTeamTasks'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -90,6 +91,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <AdminCategoriesTeams />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/events/:eventId/teams/:teamName"
+        element={
+          <ProtectedRoute>
+            <AdminTeamTasks />
           </ProtectedRoute>
         }
       />
