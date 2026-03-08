@@ -89,6 +89,7 @@ export default function AdminEventDetail() {
     const payload = {
       ...data,
       min_age: data.min_age ? Number(data.min_age) : null,
+      category: data.category || null,
       team_name: data.team_name || null,
       is_open: !data.team_name,
     }
