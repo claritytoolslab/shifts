@@ -55,6 +55,9 @@ export interface Database {
           requires_tieturva: boolean
           requires_hygiene_passport: boolean
           other_requirements: string | null
+          team_name: string | null
+          category: string | null
+          is_open: boolean
           created_at: string
           updated_at: string
         }
@@ -68,6 +71,9 @@ export interface Database {
           requires_tieturva?: boolean
           requires_hygiene_passport?: boolean
           other_requirements?: string | null
+          team_name?: string | null
+          category?: string | null
+          is_open?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -81,6 +87,9 @@ export interface Database {
           requires_tieturva?: boolean
           requires_hygiene_passport?: boolean
           other_requirements?: string | null
+          team_name?: string | null
+          category?: string | null
+          is_open?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -148,6 +157,9 @@ export interface Database {
           has_hygiene_passport: boolean
           notes: string | null
           status: string
+          gdpr_accepted: boolean
+          is_under_13: boolean
+          guardian_phone: string | null
           created_at: string
         }
         Insert: {
@@ -163,6 +175,9 @@ export interface Database {
           has_hygiene_passport?: boolean
           notes?: string | null
           status?: string
+          gdpr_accepted?: boolean
+          is_under_13?: boolean
+          guardian_phone?: string | null
           created_at?: string
         }
         Update: {

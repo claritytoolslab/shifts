@@ -4,6 +4,7 @@ import { useAuth } from './contexts/AuthContext'
 // User pages
 import HomePage from './pages/HomePage'
 import EventPage from './pages/EventPage'
+import PrivacyPage from './pages/PrivacyPage'
 
 // Admin pages
 import AdminLogin from './pages/admin/AdminLogin'
@@ -37,6 +38,7 @@ export default function App() {
       {/* Käyttäjäpuoli */}
       <Route path="/" element={<HomePage />} />
       <Route path="/event/:eventId" element={<EventPage />} />
+      <Route path="/tietosuoja" element={<PrivacyPage />} />
 
       {/* Admin-puoli */}
       <Route path="/admin/login" element={<AdminLogin />} />

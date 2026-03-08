@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { ShiftAvailability, Task, RegistrationInsert } from '../lib/database.types'
 import { X, CheckCircle, Clock, MapPin, AlertTriangle } from 'lucide-react'
@@ -22,6 +23,9 @@ interface RegistrationForm {
   has_tieturva: boolean
   has_hygiene_passport: boolean
   notes: string
+  is_under_13: boolean
+  guardian_phone: string
+  gdpr_accepted: boolean
   confirm_requirements: boolean
 }
 
@@ -33,14 +37,19 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegistrationForm>({
     defaultValues: {
       has_drivers_license: false,
       has_tieturva: false,
       has_hygiene_passport: false,
+      is_under_13: false,
+      gdpr_accepted: false,
     }
   })
+
+  const isUnder13 = watch('is_under_13')
 
   const hasRequirements =
     task.requires_drivers_license ||
@@ -80,6 +89,9 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_hygiene_passport: data.has_hygiene_passport,
       notes: data.notes?.trim() || null,
       status: 'confirmed',
+      gdpr_accepted: data.gdpr_accepted,
+      is_under_13: data.is_under_13,
+      guardian_phone: data.is_under_13 ? data.guardian_phone?.trim() || null : null,
     }
 
     const { error: insertError } = await supabase.from('registrations').insert(payload)
@@ -256,6 +268,57 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   rows={2}
                   placeholder="Muuta huomioitavaa..."
                 />
+              </div>
+
+              {/* Alle 13v */}
+              <div className="border-t pt-4 space-y-3">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    {...register('is_under_13')}
+                    className="w-4 h-4 rounded border-gray-300"
+                  />
+                  <span className="text-gray-700">Olen alle 13-vuotias</span>
+                </label>
+                {isUnder13 && (
+                  <div>
+                    <label className="label">Huoltajan puhelinnumero *</label>
+                    <input
+                      type="tel"
+                      {...register('guardian_phone', {
+                        required: isUnder13 ? 'Huoltajan puhelinnumero on pakollinen alle 13-vuotiaille' : false
+                      })}
+                      className="input"
+                      placeholder="+358 40 123 4567"
+                    />
+                    {errors.guardian_phone && (
+                      <p className="text-red-500 text-sm mt-1">{errors.guardian_phone.message}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* GDPR */}
+              <div className="border-t pt-4">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    {...register('gdpr_accepted', {
+                      required: 'Sinun täytyy hyväksyä tietosuojaseloste'
+                    })}
+                    className="w-4 h-4 rounded border-gray-300 mt-0.5"
+                  />
+                  <span className="text-gray-600">
+                    Olen lukenut ja hyväksyn{' '}
+                    <Link to="/tietosuoja" target="_blank" className="text-blue-600 hover:underline">
+                      tietosuojaselosteen
+                    </Link>
+                    . Tietojani käytetään vuorovarauksen hallintaan.
+                  </span>
+                </label>
+                {errors.gdpr_accepted && (
+                  <p className="text-red-500 text-sm mt-1">{errors.gdpr_accepted.message}</p>
+                )}
               </div>
 
               <div className="border-t pt-4">

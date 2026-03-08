@@ -45,6 +45,9 @@ export default function AdminEventDetail() {
       requires_tieturva: false,
       requires_hygiene_passport: false,
       other_requirements: '',
+      category: '',
+      team_name: '',
+      is_open: true,
     })
     setShowForm(true)
   }
@@ -59,6 +62,9 @@ export default function AdminEventDetail() {
       requires_tieturva: task.requires_tieturva,
       requires_hygiene_passport: task.requires_hygiene_passport,
       other_requirements: task.other_requirements ?? '',
+      category: task.category ?? '',
+      team_name: task.team_name ?? '',
+      is_open: task.is_open,
     })
     setShowForm(true)
   }
@@ -218,6 +224,37 @@ export default function AdminEventDetail() {
                   />
                 </div>
 
+                <div>
+                  <label className="label">Tehtäväkategoria</label>
+                  <input
+                    {...register('category')}
+                    className="input"
+                    placeholder="esim. Myymälä, Liikenne, Keittiö"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Käytetään suodattamiseen käyttäjänäkymässä</p>
+                </div>
+
+                <div className="border-t pt-4">
+                  <label className="label mb-2">Saatavuus</label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer mb-3">
+                    <input
+                      type="checkbox"
+                      {...register('is_open')}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <span>Yleinen tehtävä (kaikille avoin)</span>
+                  </label>
+                  <div>
+                    <label className="label">Tiimi (jos tiimille varattu)</label>
+                    <input
+                      {...register('team_name')}
+                      className="input"
+                      placeholder="esim. Joukkue A, Seura ry"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Jätä tyhjäksi jos tehtävä on yleinen</p>
+                  </div>
+                </div>
+
                 {error && (
                   <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
                 )}
@@ -250,6 +287,14 @@ export default function AdminEventDetail() {
                       <p className="text-sm text-gray-500 mt-0.5">{task.description}</p>
                     )}
                     <div className="flex flex-wrap gap-2 mt-2">
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${task.is_open ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {task.is_open ? 'Yleinen' : `Tiimi: ${task.team_name || '–'}`}
+                      </span>
+                      {task.category && (
+                        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
+                          {task.category}
+                        </span>
+                      )}
                       {task.min_age && (
                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                           Ikäraja: {task.min_age}v
