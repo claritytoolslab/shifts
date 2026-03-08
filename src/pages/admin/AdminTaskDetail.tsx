@@ -1,18 +1,44 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
-import type { Task, ShiftAvailability, Registration, ShiftInsert, Team } from '../../lib/database.types'
+import type { Task, ShiftAvailability, Registration, Team } from '../../lib/database.types'
 import { Plus, Trash2, X, ArrowLeft, Users, Clock } from 'lucide-react'
 import AdminAIAssistant from '../../components/AdminAIAssistant'
-import { format } from 'date-fns'
+import { format, addDays, parseISO } from 'date-fns'
 import { fi } from 'date-fns/locale'
-
-type ShiftFormData = Omit<ShiftInsert, 'id' | 'task_id' | 'created_at' | 'updated_at'>
 
 interface ShiftWithRegistrations extends ShiftAvailability {
   registrations?: Registration[]
+}
+
+// Generoi lista päivistä start–end välille
+function getDaysBetween(start: string, end: string): string[] {
+  const days: string[] = []
+  let current = parseISO(start)
+  const last = parseISO(end)
+  while (current <= last) {
+    days.push(format(current, 'yyyy-MM-dd'))
+    current = addDays(current, 1)
+  }
+  return days
+}
+
+// Tunnit ja minuutit valintaan
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+const MINUTES = ['00', '15', '30', '45']
+
+interface ShiftFormState {
+  teamName: string
+  startDay: string
+  startHour: string
+  startMinute: string
+  endDay: string
+  endHour: string
+  endMinute: string
+  maxParticipants: string
+  location: string
+  notes: string
 }
 
 export default function AdminTaskDetail() {
@@ -24,13 +50,52 @@ export default function AdminTaskDetail() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [expandedShift, setExpandedShift] = useState<string | null>(null)
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ShiftFormData>()
+  const taskWithEvent = task as Task & { events?: { name: string; id: string; start_date?: string; end_date?: string } }
+
+  const eventDays = useMemo(() => {
+    if (taskWithEvent?.events?.start_date && taskWithEvent?.events?.end_date) {
+      return getDaysBetween(taskWithEvent.events.start_date, taskWithEvent.events.end_date)
+    }
+    return []
+  }, [taskWithEvent])
+
+  const defaultForm = (): ShiftFormState => ({
+    teamName: '',
+    startDay: eventDays[0] ?? '',
+    startHour: '09',
+    startMinute: '00',
+    endDay: eventDays[0] ?? '',
+    endHour: '17',
+    endMinute: '00',
+    maxParticipants: '5',
+    location: '',
+    notes: '',
+  })
+
+  const [form, setForm] = useState<ShiftFormState>(defaultForm())
+
+  function setField(key: keyof ShiftFormState, value: string) {
+    setForm(prev => ({ ...prev, [key]: value }))
+    setFormErrors(prev => ({ ...prev, [key]: '' }))
+  }
 
   useEffect(() => {
     if (taskId) fetchData()
   }, [taskId])
+
+  // Päivitä oletuspäivät kun tapahtumadata latautuu
+  useEffect(() => {
+    if (eventDays.length > 0) {
+      setForm(prev => ({
+        ...prev,
+        startDay: prev.startDay || eventDays[0],
+        endDay: prev.endDay || eventDays[0],
+      }))
+    }
+  }, [eventDays])
 
   async function fetchData() {
     const [taskRes, shiftsRes, teamsRes] = await Promise.all([
@@ -63,25 +128,48 @@ export default function AdminTaskDetail() {
     setExpandedShift(shiftId)
   }
 
-  async function onSubmit(data: ShiftFormData) {
+  async function handleSave() {
+    const errs: Record<string, string> = {}
+    if (!form.startDay) errs.startDay = 'Valitse päivä'
+    if (!form.endDay) errs.endDay = 'Valitse päivä'
+    if (!form.maxParticipants || Number(form.maxParticipants) < 1) errs.maxParticipants = 'Vähintään 1'
+
+    const startTime = `${form.startDay}T${form.startHour}:${form.startMinute}:00`
+    const endTime = `${form.endDay}T${form.endHour}:${form.endMinute}:00`
+    if (startTime >= endTime) errs.endHour = 'Loppuajan pitää olla alkuajan jälkeen'
+
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs)
+      return
+    }
+
     setSaving(true)
     setError('')
 
     const { error } = await supabase.from('shifts').insert({
-      ...data,
       task_id: taskId!,
-      max_participants: Number(data.max_participants),
-      team_name: data.team_name || null,
+      start_time: startTime,
+      end_time: endTime,
+      max_participants: Number(form.maxParticipants),
+      team_name: form.teamName || null,
+      location: form.location || null,
+      notes: form.notes || null,
     })
 
     if (error) {
       setError('Luonti epäonnistui: ' + error.message)
     } else {
       setShowForm(false)
-      reset()
       fetchData()
     }
     setSaving(false)
+  }
+
+  function openForm() {
+    setForm(defaultForm())
+    setFormErrors({})
+    setError('')
+    setShowForm(true)
   }
 
   async function deleteShift(shiftId: string) {
@@ -115,8 +203,6 @@ export default function AdminTaskDetail() {
     )
   }
 
-  const taskWithEvent = task as Task & { events?: { name: string; id: string; start_date?: string; end_date?: string } }
-
   return (
     <AdminLayout>
       <div>
@@ -137,7 +223,7 @@ export default function AdminTaskDetail() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-700">Vuorot ({shifts.length})</h3>
           <button
-            onClick={() => { setShowForm(true); reset() }}
+            onClick={openForm}
             className="btn-primary flex items-center gap-2"
           >
             <Plus size={16} />
@@ -148,17 +234,22 @@ export default function AdminTaskDetail() {
         {/* Lomake */}
         {showForm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-lg shadow-xl">
+            <div className="bg-white rounded-xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-6 border-b">
                 <h3 className="text-lg font-semibold">Uusi vuoro</h3>
                 <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
                   <X size={20} />
                 </button>
               </div>
-              <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+              <div className="p-6 space-y-4">
+                {/* Joukkue */}
                 <div>
                   <label className="label">Joukkue</label>
-                  <select {...register('team_name')} className="input">
+                  <select
+                    value={form.teamName}
+                    onChange={e => setField('teamName', e.target.value)}
+                    className="input"
+                  >
                     <option value="">— Yleinen (kaikille) —</option>
                     {teams.map(team => (
                       <option key={team.id} value={team.name}>{team.name}</option>
@@ -167,52 +258,110 @@ export default function AdminTaskDetail() {
                   <p className="text-xs text-gray-400 mt-1">Jos joukkue valittu, vuoro näkyy vain kyseisen joukkueen kohdalla</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Alkuaika *</label>
-                    <input
-                      type="datetime-local"
-                      {...register('start_time', { required: 'Alkuaika on pakollinen' })}
+                {/* Alkuaika */}
+                <div>
+                  <label className="label">Alkuaika *</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      value={form.startDay}
+                      onChange={e => setField('startDay', e.target.value)}
+                      className="input col-span-1"
+                    >
+                      {eventDays.length > 0
+                        ? eventDays.map(d => (
+                            <option key={d} value={d}>
+                              {format(parseISO(d), 'EEE d.M.', { locale: fi })}
+                            </option>
+                          ))
+                        : <option value="">Valitse päivä</option>
+                      }
+                    </select>
+                    <select
+                      value={form.startHour}
+                      onChange={e => setField('startHour', e.target.value)}
                       className="input"
-                    />
-                    {errors.start_time && <p className="text-red-500 text-sm mt-1">{errors.start_time.message}</p>}
-                  </div>
-                  <div>
-                    <label className="label">Loppuaika *</label>
-                    <input
-                      type="datetime-local"
-                      {...register('end_time', { required: 'Loppuaika on pakollinen' })}
+                    >
+                      {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <select
+                      value={form.startMinute}
+                      onChange={e => setField('startMinute', e.target.value)}
                       className="input"
-                    />
-                    {errors.end_time && <p className="text-red-500 text-sm mt-1">{errors.end_time.message}</p>}
+                    >
+                      {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
                   </div>
+                  {formErrors.startDay && <p className="text-red-500 text-xs mt-1">{formErrors.startDay}</p>}
                 </div>
 
+                {/* Loppuaika */}
+                <div>
+                  <label className="label">Loppuaika *</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      value={form.endDay}
+                      onChange={e => setField('endDay', e.target.value)}
+                      className="input col-span-1"
+                    >
+                      {eventDays.length > 0
+                        ? eventDays.map(d => (
+                            <option key={d} value={d}>
+                              {format(parseISO(d), 'EEE d.M.', { locale: fi })}
+                            </option>
+                          ))
+                        : <option value="">Valitse päivä</option>
+                      }
+                    </select>
+                    <select
+                      value={form.endHour}
+                      onChange={e => setField('endHour', e.target.value)}
+                      className="input"
+                    >
+                      {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <select
+                      value={form.endMinute}
+                      onChange={e => setField('endMinute', e.target.value)}
+                      className="input"
+                    >
+                      {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  {formErrors.endHour && <p className="text-red-500 text-xs mt-1">{formErrors.endHour}</p>}
+                  {formErrors.endDay && <p className="text-red-500 text-xs mt-1">{formErrors.endDay}</p>}
+                </div>
+
+                {/* Paikkojen määrä */}
                 <div>
                   <label className="label">Paikkojen määrä *</label>
                   <input
                     type="number"
                     min={1}
-                    {...register('max_participants', { required: 'Paikkojen määrä on pakollinen', valueAsNumber: true, min: { value: 1, message: 'Vähintään 1 paikka' } })}
+                    value={form.maxParticipants}
+                    onChange={e => setField('maxParticipants', e.target.value)}
                     className="input"
                     placeholder="esim. 5"
                   />
-                  {errors.max_participants && <p className="text-red-500 text-sm mt-1">{errors.max_participants.message}</p>}
+                  {formErrors.maxParticipants && <p className="text-red-500 text-xs mt-1">{formErrors.maxParticipants}</p>}
                 </div>
 
+                {/* Sijainti */}
                 <div>
                   <label className="label">Sijainti</label>
                   <input
-                    {...register('location')}
+                    value={form.location}
+                    onChange={e => setField('location', e.target.value)}
                     className="input"
                     placeholder="Tarkka sijainti vuorolle"
                   />
                 </div>
 
+                {/* Lisätietoja */}
                 <div>
                   <label className="label">Lisätietoja</label>
                   <textarea
-                    {...register('notes')}
+                    value={form.notes}
+                    onChange={e => setField('notes', e.target.value)}
                     className="input"
                     rows={2}
                     placeholder="Ohjeet, varusteet jne."
@@ -224,14 +373,14 @@ export default function AdminTaskDetail() {
                 )}
 
                 <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={saving} className="btn-primary flex-1">
+                  <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
                     {saving ? 'Luodaan...' : 'Luo vuoro'}
                   </button>
                   <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
                     Peruuta
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
