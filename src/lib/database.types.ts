@@ -18,6 +18,8 @@ export interface Database {
           end_date: string
           location: string | null
           is_active: boolean
+          privacy_contact: string | null
+          privacy_retention: string | null
           created_at: string
           updated_at: string
         }
@@ -29,6 +31,8 @@ export interface Database {
           end_date: string
           location?: string | null
           is_active?: boolean
+          privacy_contact?: string | null
+          privacy_retention?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -40,6 +44,8 @@ export interface Database {
           end_date?: string
           location?: string | null
           is_active?: boolean
+          privacy_contact?: string | null
+          privacy_retention?: string | null
           updated_at?: string
         }
         Relationships: []

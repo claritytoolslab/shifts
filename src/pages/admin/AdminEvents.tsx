@@ -43,6 +43,8 @@ export default function AdminEvents() {
       end_date: '',
       location: '',
       is_active: true,
+      privacy_contact: '',
+      privacy_retention: '12 kuukautta',
     })
     setShowForm(true)
   }
@@ -56,6 +58,8 @@ export default function AdminEvents() {
       end_date: event.end_date,
       location: event.location ?? '',
       is_active: event.is_active,
+      privacy_contact: event.privacy_contact ?? '',
+      privacy_retention: event.privacy_retention ?? '12 kuukautta',
     })
     setShowForm(true)
   }
@@ -115,7 +119,7 @@ export default function AdminEvents() {
         {/* Lomake */}
         {showForm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-lg shadow-xl">
+            <div className="bg-white rounded-xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-6 border-b">
                 <h3 className="text-lg font-semibold">
                   {editingEvent ? 'Muokkaa tapahtumaa' : 'Uusi tapahtuma'}
@@ -185,6 +189,30 @@ export default function AdminEvents() {
                   <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
                     Aktiivinen (näkyy käyttäjille)
                   </label>
+                </div>
+
+                <div className="border-t pt-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Tietosuoja</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="label">Järjestäjän yhteystiedot</label>
+                      <textarea
+                        {...register('privacy_contact')}
+                        className="input"
+                        rows={3}
+                        placeholder={"Organisaatio ry\nKatu 1, 00100 Helsinki\ninfo@org.fi"}
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Näkyy tapahtuman tietosuojaselosteessa</p>
+                    </div>
+                    <div>
+                      <label className="label">Tietojen säilytysaika</label>
+                      <input
+                        {...register('privacy_retention')}
+                        className="input"
+                        placeholder="esim. 12 kuukautta"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {error && (

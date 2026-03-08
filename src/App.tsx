@@ -38,6 +38,7 @@ export default function App() {
       {/* Käyttäjäpuoli */}
       <Route path="/" element={<HomePage />} />
       <Route path="/event/:eventId" element={<EventPage />} />
+      <Route path="/tietosuoja/:eventId" element={<PrivacyPage />} />
       <Route path="/tietosuoja" element={<PrivacyPage />} />
 
       {/* Admin-puoli */}

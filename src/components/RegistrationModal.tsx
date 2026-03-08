@@ -310,7 +310,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   />
                   <span className="text-gray-600">
                     Olen lukenut ja hyväksyn{' '}
-                    <Link to="/tietosuoja" target="_blank" className="text-blue-600 hover:underline">
+                    <Link to={`/tietosuoja/${task.event_id}`} target="_blank" className="text-blue-600 hover:underline">
                       tietosuojaselosteen
                     </Link>
                     . Tietojani käytetään vuorovarauksen hallintaan.

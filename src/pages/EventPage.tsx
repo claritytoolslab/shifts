@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Event, Task, ShiftAvailability } from '../lib/database.types'
 import RegistrationModal from '../components/RegistrationModal'
-import { ArrowLeft, Calendar, MapPin, Clock, Users, ChevronDown, ChevronUp, AlertCircle, Filter } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Clock, Users, ChevronDown, ChevronUp, AlertCircle, ChevronRight, Filter } from 'lucide-react'
 import { format } from 'date-fns'
 import { fi } from 'date-fns/locale'
 
@@ -11,6 +11,8 @@ interface TaskWithShifts extends Task {
   shifts: ShiftAvailability[]
   expanded?: boolean
 }
+
+type ViewMode = 'groups' | 'tasks'
 
 export default function EventPage() {
   const { eventId } = useParams<{ eventId: string }>()
@@ -20,8 +22,9 @@ export default function EventPage() {
   const [selectedShift, setSelectedShift] = useState<ShiftAvailability | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [view, setView] = useState<ViewMode>('groups')
+  const [selectedGroup, setSelectedGroup] = useState<{ type: 'category' | 'team'; value: string } | null>(null)
   const [selectedDay, setSelectedDay] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
 
   useEffect(() => {
     if (eventId) fetchData()
@@ -47,7 +50,7 @@ export default function EventPage() {
       .from('tasks')
       .select('*')
       .eq('event_id', eventId!)
-      .order('is_open', { ascending: false }) // yleiset ensin
+      .order('is_open', { ascending: false })
       .order('created_at')
 
     if (tasksData) {
@@ -72,54 +75,59 @@ export default function EventPage() {
     setLoading(false)
   }
 
-  // Uniikit päivät kaikista vuoroista
+  // Ryhmitykset
+  const categoryGroups = useMemo(() => {
+    const groups: Record<string, TaskWithShifts[]> = {}
+    tasks.filter(t => t.is_open).forEach(task => {
+      const key = task.category ?? 'Yleiset tehtävät'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(task)
+    })
+    return groups
+  }, [tasks])
+
+  const teamGroups = useMemo(() => {
+    const groups: Record<string, TaskWithShifts[]> = {}
+    tasks.filter(t => !t.is_open).forEach(task => {
+      const key = task.team_name ?? 'Muu tiimi'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(task)
+    })
+    return groups
+  }, [tasks])
+
+  // Tehtävät valitulle ryhmälle
+  const tasksForSelectedGroup = useMemo(() => {
+    if (!selectedGroup) return []
+    const groupTasks = selectedGroup.type === 'category'
+      ? (categoryGroups[selectedGroup.value] ?? [])
+      : (teamGroups[selectedGroup.value] ?? [])
+
+    return groupTasks.map(task => {
+      let shifts = task.shifts
+      if (selectedDay) {
+        shifts = shifts.filter(s =>
+          format(new Date(s.start_time), 'yyyy-MM-dd') === selectedDay
+        )
+      }
+      return { ...task, shifts }
+    }).filter(task => !selectedDay || task.shifts.length > 0)
+  }, [selectedGroup, categoryGroups, teamGroups, selectedDay])
+
+  // Uniikit päivät valitun ryhmän vuoroista
   const availableDays = useMemo(() => {
+    if (!selectedGroup) return []
+    const groupTasks = selectedGroup.type === 'category'
+      ? (categoryGroups[selectedGroup.value] ?? [])
+      : (teamGroups[selectedGroup.value] ?? [])
     const days = new Set<string>()
-    tasks.forEach(task => {
+    groupTasks.forEach(task => {
       task.shifts.forEach(shift => {
         days.add(format(new Date(shift.start_time), 'yyyy-MM-dd'))
       })
     })
     return Array.from(days).sort()
-  }, [tasks])
-
-  // Uniikit kategoriat tehtävistä
-  const availableCategories = useMemo(() => {
-    const cats = new Set<string>()
-    tasks.forEach(task => {
-      if (task.category) cats.add(task.category)
-    })
-    return Array.from(cats).sort()
-  }, [tasks])
-
-  // Suodatetut tehtävät
-  const filteredTasks = useMemo(() => {
-    return tasks
-      .map(task => {
-        let shifts = task.shifts
-        if (selectedDay) {
-          shifts = shifts.filter(s =>
-            format(new Date(s.start_time), 'yyyy-MM-dd') === selectedDay
-          )
-        }
-        return { ...task, shifts }
-      })
-      .filter(task => {
-        if (selectedCategory && task.category !== selectedCategory) return false
-        if (selectedDay && task.shifts.length === 0) return false
-        return true
-      })
-  }, [tasks, selectedDay, selectedCategory])
-
-  // Ryhmittely: yleiset vs tiimeittäin
-  const openTasks = filteredTasks.filter(t => t.is_open)
-  const teamTasks = filteredTasks.filter(t => !t.is_open)
-  const teamGroups = teamTasks.reduce<Record<string, TaskWithShifts[]>>((acc, task) => {
-    const key = task.team_name || 'Muu'
-    if (!acc[key]) acc[key] = []
-    acc[key].push(task)
-    return acc
-  }, {})
+  }, [selectedGroup, categoryGroups, teamGroups])
 
   function toggleTask(taskId: string) {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, expanded: !t.expanded } : t))
@@ -138,6 +146,18 @@ export default function EventPage() {
   function onRegistrationSuccess() {
     fetchData()
     closeRegistration()
+  }
+
+  function selectGroup(type: 'category' | 'team', value: string) {
+    setSelectedGroup({ type, value })
+    setSelectedDay('')
+    setView('tasks')
+  }
+
+  function backToGroups() {
+    setView('groups')
+    setSelectedGroup(null)
+    setSelectedDay('')
   }
 
   if (loading) {
@@ -163,105 +183,88 @@ export default function EventPage() {
 
   function TaskCard({ task }: { task: TaskWithShifts }) {
     return (
-      <div key={task.id} className="card p-0 overflow-hidden">
+      <div className="card p-0 overflow-hidden">
         <button
           onClick={() => toggleTask(task.id)}
-          className="w-full flex items-start justify-between p-6 text-left hover:bg-gray-50 transition-colors"
+          className="w-full flex items-start justify-between p-4 text-left hover:bg-gray-50 transition-colors"
         >
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900">{task.name}</h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-semibold text-gray-900 leading-snug">{task.name}</h3>
             {task.description && (
-              <p className="text-sm text-gray-500 mt-1">{task.description}</p>
+              <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{task.description}</p>
             )}
-            <div className="flex flex-wrap gap-2 mt-2">
-              {task.category && (
-                <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
-                  {task.category}
-                </span>
-              )}
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
               {task.min_age && (
                 <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                  Ikäraja: {task.min_age}v
+                  {task.min_age}v+
                 </span>
               )}
               {task.requires_drivers_license && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                  Vaatii: B-ajokortti
-                </span>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">B-ajokortti</span>
               )}
               {task.requires_tieturva && (
-                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
-                  Vaatii: Tieturva
-                </span>
+                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">Tieturva</span>
               )}
               {task.requires_hygiene_passport && (
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                  Vaatii: Hygieniapassi
-                </span>
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Hygieniapassi</span>
               )}
               {task.other_requirements && (
-                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                  Vaatii: {task.other_requirements}
-                </span>
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{task.other_requirements}</span>
               )}
             </div>
           </div>
-          <div className="ml-4 text-gray-400">
-            {task.expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          <div className="ml-3 text-gray-400 shrink-0 mt-0.5">
+            {task.expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
         </button>
 
         {task.expanded && (
           <div className="border-t border-gray-100">
             {task.shifts.length === 0 ? (
-              <div className="px-6 py-4 text-sm text-gray-400">Ei vuoroja saatavilla</div>
+              <div className="px-4 py-3 text-sm text-gray-400">Ei vuoroja saatavilla</div>
             ) : (
               <div className="divide-y divide-gray-100">
                 {task.shifts.map(shift => (
-                  <div key={shift.shift_id} className="flex items-center justify-between px-6 py-4">
-                    <div>
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Clock size={15} className="text-gray-400" />
-                        <span className="font-medium">
-                          {format(new Date(shift.start_time), 'EEEE d.M.', { locale: fi })}{' '}
-                          {format(new Date(shift.start_time), 'HH:mm', { locale: fi })}
-                          {' – '}
-                          {format(new Date(shift.end_time), 'HH:mm', { locale: fi })}
-                        </span>
-                      </div>
-                      {shift.location && (
-                        <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-0.5">
-                          <MapPin size={13} />
-                          {shift.location}
+                  <div key={shift.shift_id} className="px-4 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 text-gray-700">
+                          <Clock size={13} className="text-gray-400 shrink-0" />
+                          <span className="text-sm font-medium">
+                            {format(new Date(shift.start_time), 'EEEE d.M.', { locale: fi })}{' '}
+                            {format(new Date(shift.start_time), 'HH:mm')}{' – '}
+                            {format(new Date(shift.end_time), 'HH:mm')}
+                          </span>
                         </div>
-                      )}
-                      {shift.notes && (
-                        <p className="text-xs text-gray-400 mt-0.5">{shift.notes}</p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-4 ml-4">
-                      <div className="text-right">
-                        <div className={`flex items-center gap-1 text-sm font-medium ${
-                          shift.available_spots === 0 ? 'text-red-600' : 'text-green-600'
+                        {shift.location && (
+                          <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5 ml-5">
+                            <MapPin size={11} />
+                            {shift.location}
+                          </div>
+                        )}
+                        {shift.notes && (
+                          <p className="text-xs text-gray-400 mt-0.5 ml-5">{shift.notes}</p>
+                        )}
+                        <div className={`flex items-center gap-1 text-xs font-medium mt-1 ml-5 ${
+                          shift.available_spots === 0 ? 'text-red-500' : 'text-green-600'
                         }`}>
-                          <Users size={14} />
+                          <Users size={12} />
                           {shift.available_spots === 0
                             ? 'Täynnä'
                             : `${shift.available_spots} paikkaa vapaana`}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {shift.confirmed_count}/{shift.max_participants} ilmoittautunut
+                          <span className="text-gray-400 font-normal">
+                            ({shift.confirmed_count}/{shift.max_participants})
+                          </span>
                         </div>
                       </div>
 
                       <button
                         onClick={() => openRegistration(shift, task)}
                         disabled={shift.available_spots === 0}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           shift.available_spots === 0
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
                         }`}
                       >
                         {shift.available_spots === 0 ? 'Täynnä' : 'Ilmoittaudu'}
@@ -277,120 +280,189 @@ export default function EventPage() {
     )
   }
 
+  // --- RYHMÄVALINTANÄKYMÄ ---
+  if (view === 'groups') {
+    const categoryKeys = Object.keys(categoryGroups)
+    const teamKeys = Object.keys(teamGroups)
+    const totalGroups = categoryKeys.length + teamKeys.length
+
+    // Jos vain yksi "Yleiset tehtävät" -ryhmä, skippa valintanäkymä
+    if (totalGroups === 1 && categoryKeys.length === 1 && categoryKeys[0] === 'Yleiset tehtävät' && !selectedGroup) {
+      selectGroup('category', 'Yleiset tehtävät')
+      return null
+    }
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white border-b border-gray-200">
+          <div className="max-w-2xl mx-auto px-4 py-4">
+            <Link to="/" className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 mb-3 text-sm">
+              <ArrowLeft size={16} />
+              Takaisin
+            </Link>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">{event?.name}</h1>
+            {event?.description && (
+              <p className="text-sm text-gray-500 mt-0.5">{event.description}</p>
+            )}
+            <div className="flex flex-wrap gap-3 mt-2">
+              {event && (
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  <Calendar size={12} />
+                  {format(new Date(event.start_date), 'd.M.yyyy', { locale: fi })}
+                  {event.start_date !== event.end_date && (
+                    <> – {format(new Date(event.end_date), 'd.M.yyyy', { locale: fi })}</>
+                  )}
+                </div>
+              )}
+              {event?.location && (
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  <MapPin size={12} />
+                  {event.location}
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+          {tasks.length === 0 ? (
+            <div className="text-center py-12">
+              <Clock size={40} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500">Tähän tapahtumaan ei ole vielä lisätty tehtäviä.</p>
+            </div>
+          ) : (
+            <>
+              {/* Kategoriat */}
+              {categoryKeys.length > 0 && (
+                <div>
+                  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
+                    Tehtäväkategoriat
+                  </h2>
+                  <div className="space-y-2">
+                    {categoryKeys.map(cat => {
+                      const catTasks = categoryGroups[cat]
+                      const totalShifts = catTasks.reduce((sum, t) => sum + t.shifts.length, 0)
+                      const freeShifts = catTasks.reduce((sum, t) =>
+                        sum + t.shifts.filter(s => s.available_spots > 0).length, 0)
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => selectGroup('category', cat)}
+                          className="w-full flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-indigo-200 hover:shadow-md active:bg-gray-50 transition-all text-left"
+                        >
+                          <div>
+                            <div className="font-semibold text-gray-900">{cat}</div>
+                            <div className="text-sm text-gray-500 mt-0.5">
+                              {catTasks.length} tehtävää
+                              {totalShifts > 0 && (
+                                <> · <span className={freeShifts > 0 ? 'text-green-600' : 'text-red-500'}>
+                                  {freeShifts}/{totalShifts} vuoroa vapaana
+                                </span></>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight size={20} className="text-gray-400 shrink-0 ml-3" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Tiimit */}
+              {teamKeys.length > 0 && (
+                <div>
+                  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
+                    Tiimit
+                  </h2>
+                  <div className="space-y-2">
+                    {teamKeys.map(team => {
+                      const teamTaskList = teamGroups[team]
+                      const totalShifts = teamTaskList.reduce((sum, t) => sum + t.shifts.length, 0)
+                      const freeShifts = teamTaskList.reduce((sum, t) =>
+                        sum + t.shifts.filter(s => s.available_spots > 0).length, 0)
+                      return (
+                        <button
+                          key={team}
+                          onClick={() => selectGroup('team', team)}
+                          className="w-full flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-purple-200 hover:shadow-md active:bg-gray-50 transition-all text-left"
+                        >
+                          <div>
+                            <div className="font-semibold text-gray-900">{team}</div>
+                            <div className="text-sm text-gray-500 mt-0.5">
+                              {teamTaskList.length} tehtävää
+                              {totalShifts > 0 && (
+                                <> · <span className={freeShifts > 0 ? 'text-green-600' : 'text-red-500'}>
+                                  {freeShifts}/{totalShifts} vuoroa vapaana
+                                </span></>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight size={20} className="text-gray-400 shrink-0 ml-3" />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+      </div>
+    )
+  }
+
+  // --- TEHTÄVÄLISTANÄKYMÄ ---
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <Link to="/" className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-3">
-            <ArrowLeft size={18} />
-            Takaisin
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">{event?.name}</h1>
-          {event?.description && (
-            <p className="text-gray-500 mt-1">{event.description}</p>
-          )}
-          <div className="flex flex-wrap gap-4 mt-3">
-            {event && (
-              <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                <Calendar size={14} />
-                {format(new Date(event.start_date), 'd.M.yyyy', { locale: fi })}
-                {event.start_date !== event.end_date && (
-                  <> – {format(new Date(event.end_date), 'd.M.yyyy', { locale: fi })}</>
-                )}
-              </div>
-            )}
-            {event?.location && (
-              <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                <MapPin size={14} />
-                {event.location}
-              </div>
-            )}
-          </div>
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <button
+            onClick={backToGroups}
+            className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 mb-3 text-sm"
+          >
+            <ArrowLeft size={16} />
+            {event?.name}
+          </button>
+          <h1 className="text-xl font-bold text-gray-900">{selectedGroup?.value}</h1>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Suodattimet */}
-        {(availableDays.length > 1 || availableCategories.length > 0) && (
-          <div className="flex flex-wrap gap-3 mb-6">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Filter size={14} />
-              Suodata:
-            </div>
-            {availableDays.length > 1 && (
-              <select
-                value={selectedDay}
-                onChange={e => setSelectedDay(e.target.value)}
-                className="input w-auto text-sm py-1.5"
-              >
-                <option value="">Kaikki päivät</option>
-                {availableDays.map(day => (
-                  <option key={day} value={day}>
-                    {format(new Date(day), 'EEEE d.M.', { locale: fi })}
-                  </option>
-                ))}
-              </select>
-            )}
-            {availableCategories.length > 0 && (
-              <select
-                value={selectedCategory}
-                onChange={e => setSelectedCategory(e.target.value)}
-                className="input w-auto text-sm py-1.5"
-              >
-                <option value="">Kaikki kategoriat</option>
-                {availableCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            )}
-            {(selectedDay || selectedCategory) && (
+      <main className="max-w-2xl mx-auto px-4 py-4">
+        {/* Päiväsuodatin — pill-napit scrollattavassa rivissä */}
+        {availableDays.length > 1 && (
+          <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 -mx-4 px-4">
+            <Filter size={14} className="text-gray-400 shrink-0" />
+            <button
+              onClick={() => setSelectedDay('')}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                !selectedDay ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              Kaikki
+            </button>
+            {availableDays.map(day => (
               <button
-                onClick={() => { setSelectedDay(''); setSelectedCategory('') }}
-                className="text-sm text-blue-600 hover:underline"
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  selectedDay === day ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
+                }`}
               >
-                Tyhjennä suodattimet
+                {format(new Date(day), 'EEE d.M.', { locale: fi })}
               </button>
-            )}
+            ))}
           </div>
         )}
 
-        {filteredTasks.length === 0 ? (
+        {tasksForSelectedGroup.length === 0 ? (
           <div className="text-center py-12">
-            <Clock size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500 text-lg">
-              {tasks.length === 0
-                ? 'Tähän tapahtumaan ei ole vielä lisätty tehtäviä.'
-                : 'Ei tehtäviä valituilla suodattimilla.'}
-            </p>
+            <Clock size={40} className="mx-auto text-gray-300 mb-3" />
+            <p className="text-gray-500">Ei tehtäviä valituilla suodattimilla.</p>
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Yleiset tehtävät */}
-            {openTasks.length > 0 && (
-              <div>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                  Kaikille avoimet tehtävät
-                </h2>
-                <div className="space-y-4">
-                  {openTasks.map(task => <TaskCard key={task.id} task={task} />)}
-                </div>
-              </div>
-            )}
-
-            {/* Tiimeille varatut tehtävät */}
-            {Object.entries(teamGroups).map(([teamName, teamTaskList]) => (
-              <div key={teamName}>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-                  <span className="w-4 h-px bg-gray-300 inline-block"></span>
-                  {teamName}
-                  <span className="w-4 h-px bg-gray-300 inline-block"></span>
-                </h2>
-                <div className="space-y-4">
-                  {teamTaskList.map(task => <TaskCard key={task.id} task={task} />)}
-                </div>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {tasksForSelectedGroup.map(task => <TaskCard key={task.id} task={task} />)}
           </div>
         )}
       </main>
