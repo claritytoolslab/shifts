@@ -32,7 +32,7 @@ export default function AdminTaskDetail() {
 
   async function fetchData() {
     const [taskRes, shiftsRes] = await Promise.all([
-      supabase.from('tasks').select('*, events(name, id)').eq('id', taskId!).single(),
+      supabase.from('tasks').select('*, events(name, id, start_date, end_date)').eq('id', taskId!).single(),
       supabase.from('shift_availability').select('*').eq('task_id', taskId!).order('start_time'),
     ])
 
@@ -110,7 +110,9 @@ export default function AdminTaskDetail() {
     )
   }
 
-  const taskWithEvent = task as Task & { events?: { name: string; id: string } }
+  const taskWithEvent = task as Task & { events?: { name: string; id: string; start_date?: string; end_date?: string } }
+  const minDateTime = taskWithEvent?.events?.start_date ? taskWithEvent.events.start_date + 'T00:00' : undefined
+  const maxDateTime = taskWithEvent?.events?.end_date ? taskWithEvent.events.end_date + 'T23:59' : undefined
 
   return (
     <AdminLayout>
@@ -157,6 +159,8 @@ export default function AdminTaskDetail() {
                     <input
                       type="datetime-local"
                       {...register('start_time', { required: 'Alkuaika on pakollinen' })}
+                      min={minDateTime}
+                      max={maxDateTime}
                       className="input"
                     />
                     {errors.start_time && <p className="text-red-500 text-sm mt-1">{errors.start_time.message}</p>}
@@ -166,6 +170,8 @@ export default function AdminTaskDetail() {
                     <input
                       type="datetime-local"
                       {...register('end_time', { required: 'Loppuaika on pakollinen' })}
+                      min={minDateTime}
+                      max={maxDateTime}
                       className="input"
                     />
                     {errors.end_time && <p className="text-red-500 text-sm mt-1">{errors.end_time.message}</p>}
