@@ -29,13 +29,12 @@ Vastaa täsmälleen tässä JSON-muodossa:
   tasks: `Olet avustaja joka luo vapaaehtoistapahtumien hallintajärjestelmään sisältöä.
 Vastaa AINA pelkällä validilla JSON-objektilla ilman muuta tekstiä, selityksiä tai markdown-muotoilua.
 
-Generoi käyttäjän pyynnön perusteella tehtäviä tapahtumaan. Tehtävät ovat vapaaehtoistehtäviä kuten "Lipunmyynti", "Järjestyksenvalvonta", "Opastus".
-Kenttä "is_open": true = yleinen tehtävä (kaikille), false = joukkuekohtainen tehtävä.
-Kenttä "team_name": joukkueen nimi jos joukkuekohtainen, null jos yleinen.
+Generoi käyttäjän pyynnön perusteella tehtäviä tapahtumaan. Tehtävät ovat globaaleja vapaaehtoistehtäviä kuten "Lipunmyynti", "Järjestyksenvalvonta", "Opastus".
+Tehtävät eivät ole sidottu joukkueeseen – joukkuesidonnan tekee vuorot erikseen.
 Kenttä "category": tehtävän kategoria (voi olla null).
 
 Vastaa täsmälleen tässä JSON-muodossa:
-{"type":"tasks","tasks":[{"name":"Tehtävän nimi","description":"Kuvaus","category":null,"team_name":null,"is_open":true,"min_age":null,"requires_drivers_license":false,"requires_tieturva":false,"requires_hygiene_passport":false}]}`,
+{"type":"tasks","tasks":[{"name":"Tehtävän nimi","description":"Kuvaus","category":null,"min_age":null,"requires_drivers_license":false,"requires_tieturva":false,"requires_hygiene_passport":false}]}`,
 
   shifts: `Olet avustaja joka luo vapaaehtoistapahtumien hallintajärjestelmään sisältöä.
 Vastaa AINA pelkällä validilla JSON-objektilla ilman muuta tekstiä, selityksiä tai markdown-muotoilua.

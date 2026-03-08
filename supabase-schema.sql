@@ -14,7 +14,7 @@ CREATE TABLE events (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tehtävät
+-- Tehtävät (globaaleja, ei joukkuesidontaa – vuorot sidotaan joukkueeseen)
 CREATE TABLE tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -25,14 +25,16 @@ CREATE TABLE tasks (
   requires_tieturva BOOLEAN DEFAULT false,
   requires_hygiene_passport BOOLEAN DEFAULT false,
   other_requirements TEXT,
+  category TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Vuorot
+-- Vuorot (team_name = null → yleinen, team_name = joukkueen nimi → joukkuekohtainen)
 CREATE TABLE shifts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  team_name TEXT,
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ NOT NULL,
   max_participants INTEGER NOT NULL DEFAULT 1,
@@ -65,11 +67,12 @@ CREATE INDEX idx_shifts_task_id ON shifts(task_id);
 CREATE INDEX idx_registrations_shift_id ON registrations(shift_id);
 CREATE INDEX idx_events_is_active ON events(is_active);
 
--- Näkymä: vuoro täyttöaste
+-- Näkymä: vuoro täyttöaste (sisältää team_name)
 CREATE VIEW shift_availability AS
 SELECT
   s.id AS shift_id,
   s.task_id,
+  s.team_name,
   s.start_time,
   s.end_time,
   s.max_participants,

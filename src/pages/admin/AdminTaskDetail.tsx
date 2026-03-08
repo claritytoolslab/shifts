@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
-import type { Task, ShiftAvailability, Registration, ShiftInsert } from '../../lib/database.types'
+import type { Task, ShiftAvailability, Registration, ShiftInsert, Team } from '../../lib/database.types'
 import { Plus, Trash2, X, ArrowLeft, Users, Clock } from 'lucide-react'
 import AdminAIAssistant from '../../components/AdminAIAssistant'
 import { format } from 'date-fns'
@@ -19,6 +19,7 @@ export default function AdminTaskDetail() {
   const { taskId } = useParams<{ taskId: string }>()
   const [task, setTask] = useState<Task | null>(null)
   const [shifts, setShifts] = useState<ShiftWithRegistrations[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -32,13 +33,15 @@ export default function AdminTaskDetail() {
   }, [taskId])
 
   async function fetchData() {
-    const [taskRes, shiftsRes] = await Promise.all([
+    const [taskRes, shiftsRes, teamsRes] = await Promise.all([
       supabase.from('tasks').select('*, events(name, id, start_date, end_date)').eq('id', taskId!).single(),
       supabase.from('shift_availability').select('*').eq('task_id', taskId!).order('start_time'),
+      supabase.from('teams').select('*').order('name'),
     ])
 
     if (taskRes.data) setTask(taskRes.data as unknown as Task)
     if (shiftsRes.data) setShifts(shiftsRes.data as ShiftWithRegistrations[])
+    if (teamsRes.data) setTeams(teamsRes.data as Team[])
     setLoading(false)
   }
 
@@ -68,6 +71,7 @@ export default function AdminTaskDetail() {
       ...data,
       task_id: taskId!,
       max_participants: Number(data.max_participants),
+      team_name: data.team_name || null,
     })
 
     if (error) {
@@ -154,6 +158,17 @@ export default function AdminTaskDetail() {
                 </button>
               </div>
               <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+                <div>
+                  <label className="label">Joukkue</label>
+                  <select {...register('team_name')} className="input">
+                    <option value="">— Yleinen (kaikille) —</option>
+                    {teams.map(team => (
+                      <option key={team.id} value={team.name}>{team.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">Jos joukkue valittu, vuoro näkyy vain kyseisen joukkueen kohdalla</p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="label">Alkuaika *</label>
@@ -258,6 +273,16 @@ export default function AdminTaskDetail() {
                         <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Täynnä</span>
                       )}
                     </div>
+                    {shift.team_name && (
+                      <span className="inline-block text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full mt-1 font-medium">
+                        {shift.team_name}
+                      </span>
+                    )}
+                    {!shift.team_name && (
+                      <span className="inline-block text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full mt-1 font-medium">
+                        Yleinen
+                      </span>
+                    )}
                     {shift.location && (
                       <p className="text-sm text-gray-500 mt-1">{shift.location}</p>
                     )}

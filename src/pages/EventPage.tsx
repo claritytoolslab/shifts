@@ -14,6 +14,12 @@ interface TaskWithShifts extends Task {
 
 type ViewMode = 'groups' | 'tasks'
 
+// Ryhmätyyppi: category (yleinen) tai team (joukkue)
+interface Group {
+  type: 'category' | 'team'
+  value: string
+}
+
 export default function EventPage() {
   const { eventId } = useParams<{ eventId: string }>()
   const [event, setEvent] = useState<Event | null>(null)
@@ -23,7 +29,7 @@ export default function EventPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [view, setView] = useState<ViewMode>('groups')
-  const [selectedGroup, setSelectedGroup] = useState<{ type: 'category' | 'team'; value: string } | null>(null)
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [selectedDay, setSelectedDay] = useState('')
 
   useEffect(() => {
@@ -50,8 +56,7 @@ export default function EventPage() {
       .from('tasks')
       .select('*')
       .eq('event_id', eventId!)
-      .order('is_open', { ascending: false })
-      .order('created_at')
+      .order('name')
 
     if (tasksData) {
       const tasksWithShifts = await Promise.all(
@@ -75,23 +80,35 @@ export default function EventPage() {
     setLoading(false)
   }
 
-  // Ryhmitykset
+  // Yleiset tehtävät: vuorot joilla ei ole team_name → ryhmitellään kategorian mukaan
   const categoryGroups = useMemo(() => {
     const groups: Record<string, TaskWithShifts[]> = {}
-    tasks.filter(t => t.is_open).forEach(task => {
+    tasks.forEach(task => {
+      const openShifts = task.shifts.filter(s => !s.team_name)
+      if (openShifts.length === 0) return
       const key = task.category || 'Yleiset tehtävät'
       if (!groups[key]) groups[key] = []
-      groups[key].push(task)
+      groups[key].push({ ...task, shifts: openShifts })
     })
     return groups
   }, [tasks])
 
+  // Joukkuekohtaiset tehtävät: vuorot joilla on team_name → ryhmitellään joukkueen mukaan
   const teamGroups = useMemo(() => {
     const groups: Record<string, TaskWithShifts[]> = {}
-    tasks.filter(t => !t.is_open).forEach(task => {
-      const key = task.team_name || 'Muu tiimi'
-      if (!groups[key]) groups[key] = []
-      groups[key].push(task)
+    tasks.forEach(task => {
+      const teamShifts = task.shifts.filter(s => s.team_name)
+      teamShifts.forEach(shift => {
+        const key = shift.team_name!
+        if (!groups[key]) groups[key] = []
+        // Lisää tehtävä ko. joukkueen alle (yhdellä vuorolla)
+        const existing = groups[key].find(t => t.id === task.id)
+        if (existing) {
+          existing.shifts.push(shift)
+        } else {
+          groups[key].push({ ...task, shifts: [shift] })
+        }
+      })
     })
     return groups
   }, [tasks])
@@ -286,9 +303,9 @@ export default function EventPage() {
     const teamKeys = Object.keys(teamGroups)
     const totalGroups = categoryKeys.length + teamKeys.length
 
-    // Jos vain yksi "Yleiset tehtävät" -ryhmä, skippa valintanäkymä
-    if (totalGroups === 1 && categoryKeys.length === 1 && categoryKeys[0] === 'Yleiset tehtävät' && !selectedGroup) {
-      selectGroup('category', 'Yleiset tehtävät')
+    // Jos vain yksi kategoriaryhmä eikä joukkueryhmiä, skippa valintanäkymä
+    if (totalGroups === 1 && categoryKeys.length === 1 && !selectedGroup) {
+      selectGroup('category', categoryKeys[0])
       return null
     }
 
@@ -325,14 +342,14 @@ export default function EventPage() {
         </header>
 
         <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-          {tasks.length === 0 ? (
+          {totalGroups === 0 ? (
             <div className="text-center py-12">
               <Clock size={40} className="mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-500">Tähän tapahtumaan ei ole vielä lisätty tehtäviä.</p>
+              <p className="text-gray-500">Tähän tapahtumaan ei ole vielä lisätty vuoroja.</p>
             </div>
           ) : (
             <>
-              {/* Kategoriat */}
+              {/* Kategoriat (yleiset vuorot) */}
               {categoryKeys.length > 0 && (
                 <div>
                   <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
@@ -369,7 +386,7 @@ export default function EventPage() {
                 </div>
               )}
 
-              {/* Tiimit */}
+              {/* Joukkueet */}
               {teamKeys.length > 0 && (
                 <div>
                   <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
@@ -429,7 +446,7 @@ export default function EventPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-4">
-        {/* Päiväsuodatin — pill-napit scrollattavassa rivissä */}
+        {/* Päiväsuodatin */}
         {availableDays.length >= 1 && (
           <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 -mx-4 px-4">
             <Filter size={14} className="text-gray-400 shrink-0" />

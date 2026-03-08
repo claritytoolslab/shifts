@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
-import type { Category, Team } from '../../lib/database.types'
+import type { Category, Team, Task, Event } from '../../lib/database.types'
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import type { TaskInsert } from '../../lib/database.types'
+
+type TaskForm = Omit<TaskInsert, 'id' | 'event_id' | 'created_at' | 'updated_at'>
 
 function ItemList<T extends { id: string; name: string }>({
   title,
@@ -124,56 +128,138 @@ function ItemList<T extends { id: string; name: string }>({
 export default function AdminCategoriesTeams() {
   const [categories, setCategories] = useState<Category[]>([])
   const [teams, setTeams] = useState<Team[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showTaskForm, setShowTaskForm] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [taskSaving, setTaskSaving] = useState(false)
+  const [taskError, setTaskError] = useState('')
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all')
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<TaskForm & { event_id: string }>()
 
   useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
-    const [catRes, teamRes] = await Promise.all([
+    const [catRes, teamRes, taskRes, eventRes] = await Promise.all([
       supabase.from('categories').select('*').order('name'),
       supabase.from('teams').select('*').order('name'),
+      supabase.from('tasks').select('*').order('name'),
+      supabase.from('events').select('id, name, start_date').order('start_date', { ascending: false }),
     ])
     if (catRes.data) setCategories(catRes.data as Category[])
     if (teamRes.data) setTeams(teamRes.data as Team[])
+    if (taskRes.data) setTasks(taskRes.data as Task[])
+    if (eventRes.data) setEvents(eventRes.data as Event[])
     setLoading(false)
   }
 
+  // Kategoriat
   async function addCategory(name: string) {
     const { error } = await supabase.from('categories').insert({ name })
     if (error) setError(error.message)
     else fetchAll()
   }
-
   async function renameCategory(id: string, name: string) {
     const { error } = await supabase.from('categories').update({ name }).eq('id', id)
     if (error) setError(error.message)
     else fetchAll()
   }
-
   async function deleteCategory(id: string) {
     if (!confirm('Poista kategoria?')) return
     await supabase.from('categories').delete().eq('id', id)
     fetchAll()
   }
 
+  // Tiimit
   async function addTeam(name: string) {
     const { error } = await supabase.from('teams').insert({ name })
     if (error) setError(error.message)
     else fetchAll()
   }
-
   async function renameTeam(id: string, name: string) {
     const { error } = await supabase.from('teams').update({ name }).eq('id', id)
     if (error) setError(error.message)
     else fetchAll()
   }
-
   async function deleteTeam(id: string) {
     if (!confirm('Poista tiimi?')) return
     await supabase.from('teams').delete().eq('id', id)
     fetchAll()
   }
+
+  // Tehtävät
+  function openCreateTaskForm() {
+    setEditingTask(null)
+    reset({ name: '', description: '', category: '', min_age: undefined, event_id: '' })
+    setShowTaskForm(true)
+    setTaskError('')
+  }
+
+  function openEditTaskForm(task: Task) {
+    setEditingTask(task)
+    reset({
+      name: task.name,
+      description: task.description ?? '',
+      category: task.category ?? '',
+      min_age: task.min_age ?? undefined,
+      requires_drivers_license: task.requires_drivers_license,
+      requires_tieturva: task.requires_tieturva,
+      requires_hygiene_passport: task.requires_hygiene_passport,
+      other_requirements: task.other_requirements ?? '',
+      event_id: task.event_id,
+    })
+    setShowTaskForm(true)
+    setTaskError('')
+  }
+
+  async function onTaskSubmit(data: TaskForm & { event_id: string }) {
+    setTaskSaving(true)
+    setTaskError('')
+
+    if (!data.event_id) {
+      setTaskError('Valitse tapahtuma')
+      setTaskSaving(false)
+      return
+    }
+
+    const payload = {
+      name: data.name,
+      description: data.description || null,
+      category: data.category || null,
+      min_age: data.min_age ? Number(data.min_age) : null,
+      requires_drivers_license: Boolean(data.requires_drivers_license),
+      requires_tieturva: Boolean(data.requires_tieturva),
+      requires_hygiene_passport: Boolean(data.requires_hygiene_passport),
+      other_requirements: data.other_requirements || null,
+    }
+
+    if (editingTask) {
+      const { error } = await supabase.from('tasks').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingTask.id)
+      if (error) { setTaskError('Tallennus epäonnistui: ' + error.message); setTaskSaving(false); return }
+    } else {
+      const { error } = await supabase.from('tasks').insert({ ...payload, event_id: data.event_id })
+      if (error) { setTaskError('Luonti epäonnistui: ' + error.message); setTaskSaving(false); return }
+    }
+
+    setShowTaskForm(false)
+    fetchAll()
+    setTaskSaving(false)
+  }
+
+  async function deleteTask(id: string) {
+    if (!confirm('Poista tehtävä? Kaikki siihen liittyvät vuorot poistetaan.')) return
+    await supabase.from('tasks').delete().eq('id', id)
+    fetchAll()
+  }
+
+  const filteredTasks = selectedEventFilter === 'all'
+    ? tasks
+    : tasks.filter(t => t.event_id === selectedEventFilter)
+
+  const eventName = (id: string) => events.find(e => e.id === id)?.name ?? '–'
 
   if (loading) {
     return (
@@ -189,15 +275,15 @@ export default function AdminCategoriesTeams() {
     <AdminLayout>
       <div>
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Kategoriat & Tiimit</h2>
-          <p className="text-sm text-gray-500 mt-1">Globaalit listat tehtävien luokitteluun</p>
+          <h2 className="text-2xl font-bold text-gray-900">Kategoriat, Tiimit & Tehtävät</h2>
+          <p className="text-sm text-gray-500 mt-1">Globaalit listat – tehtävät ovat yhteisiä kaikille joukkueille</p>
         </div>
 
         {error && (
           <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
           <ItemList
             title="Kategoriat"
             items={categories}
@@ -206,13 +292,160 @@ export default function AdminCategoriesTeams() {
             onDelete={deleteCategory}
           />
           <ItemList
-            title="Tiimit"
+            title="Tiimit / Joukkueet"
             items={teams}
             onAdd={addTeam}
             onRename={renameTeam}
             onDelete={deleteTeam}
           />
         </div>
+
+        {/* Tehtävät */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">Tehtävät</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Globaalit tehtävät – vuorot liitetään joukkueeseen erikseen</p>
+            </div>
+            <button onClick={openCreateTaskForm} className="btn-primary flex items-center gap-1 text-sm px-3">
+              <Plus size={15} />
+              Uusi tehtävä
+            </button>
+          </div>
+
+          {/* Tapahtuma-suodatin */}
+          <div className="mb-3">
+            <select
+              value={selectedEventFilter}
+              onChange={e => setSelectedEventFilter(e.target.value)}
+              className="input text-sm py-1.5"
+            >
+              <option value="all">Kaikki tapahtumat ({tasks.length} tehtävää)</option>
+              {events.map(ev => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name} ({tasks.filter(t => t.event_id === ev.id).length} tehtävää)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {filteredTasks.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4 text-center">Ei tehtäviä.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {filteredTasks.map(task => (
+                <li key={task.id} className="flex items-center justify-between py-2.5 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-gray-800">{task.name}</span>
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      <span className="text-xs text-gray-400">{eventName(task.event_id)}</span>
+                      {task.category && (
+                        <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">{task.category}</span>
+                      )}
+                      {task.min_age && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{task.min_age}v+</span>}
+                      {task.requires_drivers_license && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">B-kortti</span>}
+                      {task.requires_tieturva && <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tieturva</span>}
+                      {task.requires_hygiene_passport && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Hygieniapassi</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => openEditTaskForm(task)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg">
+                      <Pencil size={15} />
+                    </button>
+                    <button onClick={() => deleteTask(task.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Tehtävälomake */}
+        {showTaskForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-lg font-semibold">{editingTask ? 'Muokkaa tehtävää' : 'Uusi tehtävä'}</h3>
+                <button onClick={() => setShowTaskForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              </div>
+              <form onSubmit={handleSubmit(onTaskSubmit)} className="p-6 space-y-4">
+                <div>
+                  <label className="label">Tapahtuma *</label>
+                  <select {...register('event_id', { required: true })} className="input">
+                    <option value="">— Valitse tapahtuma —</option>
+                    {events.map(ev => (
+                      <option key={ev.id} value={ev.id}>{ev.name} ({ev.start_date})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Tehtävän nimi *</label>
+                  <input
+                    {...register('name', { required: 'Nimi on pakollinen' })}
+                    className="input"
+                    placeholder="esim. Järjestysmies, Buffa, Opas"
+                  />
+                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+                </div>
+
+                <div>
+                  <label className="label">Kuvaus</label>
+                  <textarea {...register('description')} className="input" rows={2} />
+                </div>
+
+                <div>
+                  <label className="label">Kategoria</label>
+                  <select {...register('category')} className="input">
+                    <option value="">— ei kategoriaa —</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Minimi-ikä</label>
+                  <input type="number" min={0} max={100} {...register('min_age')} className="input" placeholder="esim. 18" />
+                </div>
+
+                <div>
+                  <label className="label">Erityisvaatimukset</label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" {...register('requires_drivers_license')} className="w-4 h-4 rounded border-gray-300" />
+                      B-ajokortti
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" {...register('requires_tieturva')} className="w-4 h-4 rounded border-gray-300" />
+                      Tieturva 1/2
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" {...register('requires_hygiene_passport')} className="w-4 h-4 rounded border-gray-300" />
+                      Hygieniapassi
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Muut vaatimukset</label>
+                  <input {...register('other_requirements')} className="input" placeholder="esim. EA1-kurssi" />
+                </div>
+
+                {taskError && <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{taskError}</div>}
+
+                <div className="flex gap-3 pt-2">
+                  <button type="submit" disabled={taskSaving} className="btn-primary flex-1">
+                    {taskSaving ? 'Tallennetaan...' : editingTask ? 'Tallenna' : 'Luo tehtävä'}
+                  </button>
+                  <button type="button" onClick={() => setShowTaskForm(false)} className="btn-secondary">Peruuta</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   )

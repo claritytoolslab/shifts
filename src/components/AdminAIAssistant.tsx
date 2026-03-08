@@ -28,8 +28,6 @@ interface TaskDraft {
   name: string
   description: string | null
   category: string | null
-  team_name: string | null
-  is_open: boolean
   min_age: number | null
   requires_drivers_license: boolean
   requires_tieturva: boolean
@@ -302,8 +300,6 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
             name: t.name,
             description: t.description || null,
             category: t.category || null,
-            team_name: t.team_name || null,
-            is_open: t.is_open,
             min_age: t.min_age || null,
             requires_drivers_license: t.requires_drivers_license ?? false,
             requires_tieturva: t.requires_tieturva ?? false,
@@ -524,8 +520,7 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
                                   <div>
                                     <p className="font-semibold text-sm text-gray-900">{t.name}</p>
                                     {t.category && <p className="text-xs text-gray-500">Kategoria: {t.category}</p>}
-                                    {t.team_name && <p className="text-xs text-gray-500">Joukkue: {t.team_name}</p>}
-                                    <p className="text-xs text-gray-400">{t.is_open ? 'Yleinen' : 'Joukkuekohtainen'}</p>
+                                    {t.description && <p className="text-xs text-gray-400">{t.description}</p>}
                                   </div>
                                 </label>
                               ))}
