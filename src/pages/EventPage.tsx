@@ -303,12 +303,6 @@ export default function EventPage() {
     const teamKeys = Object.keys(teamGroups)
     const totalGroups = categoryKeys.length + teamKeys.length
 
-    // Jos vain yksi kategoriaryhmä eikä joukkueryhmiä, skippa valintanäkymä
-    if (totalGroups === 1 && categoryKeys.length === 1 && !selectedGroup) {
-      selectGroup('category', categoryKeys[0])
-      return null
-    }
-
     return (
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b border-gray-200">
