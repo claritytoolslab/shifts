@@ -20,7 +20,8 @@ export default function AdminEventDetail() {
   const [allCategories, setAllCategories] = useState<Category[]>([])
   const [allTeams, setAllTeams] = useState<Team[]>([])
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<TaskForm>()
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<TaskForm>()
+  const watchedTeam = watch('team_name')
 
   useEffect(() => {
     if (eventId) fetchData()
@@ -88,6 +89,8 @@ export default function AdminEventDetail() {
     const payload = {
       ...data,
       min_age: data.min_age ? Number(data.min_age) : null,
+      team_name: data.team_name || null,
+      is_open: !data.team_name,
     }
 
     if (editingTask) {
@@ -249,23 +252,24 @@ export default function AdminEventDetail() {
 
                 <div className="border-t pt-4">
                   <label className="label mb-2">Saatavuus</label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer mb-3">
-                    <input
-                      type="checkbox"
-                      {...register('is_open')}
-                      className="w-4 h-4 rounded border-gray-300"
-                    />
-                    <span>Yleinen tehtävä (kaikille avoin)</span>
-                  </label>
                   <div>
-                    <label className="label">Tiimi (jos tiimille varattu)</label>
-                    <select {...register('team_name')} className="input">
-                      <option value="">– ei tiimiä –</option>
+                    <label className="label">Joukkue (jos joukkueelle varattu)</label>
+                    <select
+                      {...register('team_name', {
+                        onChange: e => setValue('is_open', !e.target.value),
+                      })}
+                      className="input"
+                    >
+                      <option value="">– ei joukkuetta (yleinen tehtävä) –</option>
                       {allTeams.map(team => (
                         <option key={team.id} value={team.name}>{team.name}</option>
                       ))}
                     </select>
-                    <p className="text-xs text-gray-400 mt-1">Jätä tyhjäksi jos tehtävä on yleinen</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {watchedTeam
+                        ? 'Joukkuekohtainen tehtävä – näkyy vain kyseisen joukkueen alla'
+                        : 'Yleinen tehtävä – näkyy kaikille käyttäjille'}
+                    </p>
                   </div>
                 </div>
 
