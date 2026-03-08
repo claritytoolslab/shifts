@@ -116,8 +116,6 @@ export default function AdminTaskDetail() {
   }
 
   const taskWithEvent = task as Task & { events?: { name: string; id: string; start_date?: string; end_date?: string } }
-  const minDateTime = taskWithEvent?.events?.start_date ? taskWithEvent.events.start_date + 'T00:00' : undefined
-  const maxDateTime = taskWithEvent?.events?.end_date ? taskWithEvent.events.end_date + 'T23:59' : undefined
 
   return (
     <AdminLayout>
@@ -175,8 +173,6 @@ export default function AdminTaskDetail() {
                     <input
                       type="datetime-local"
                       {...register('start_time', { required: 'Alkuaika on pakollinen' })}
-                      min={minDateTime}
-                      max={maxDateTime}
                       className="input"
                     />
                     {errors.start_time && <p className="text-red-500 text-sm mt-1">{errors.start_time.message}</p>}
@@ -186,8 +182,6 @@ export default function AdminTaskDetail() {
                     <input
                       type="datetime-local"
                       {...register('end_time', { required: 'Loppuaika on pakollinen' })}
-                      min={minDateTime}
-                      max={maxDateTime}
                       className="input"
                     />
                     {errors.end_time && <p className="text-red-500 text-sm mt-1">{errors.end_time.message}</p>}
@@ -199,7 +193,7 @@ export default function AdminTaskDetail() {
                   <input
                     type="number"
                     min={1}
-                    {...register('max_participants', { required: 'Paikkojen määrä on pakollinen', min: 1 })}
+                    {...register('max_participants', { required: 'Paikkojen määrä on pakollinen', valueAsNumber: true, min: { value: 1, message: 'Vähintään 1 paikka' } })}
                     className="input"
                     placeholder="esim. 5"
                   />
