@@ -3,6 +3,8 @@ import type { Handler } from '@netlify/functions'
 
 const client = new Anthropic()
 
+const today = new Date().toISOString().split('T')[0]
+
 const SYSTEM_PROMPTS: Record<string, string> = {
   categories_teams: `Olet avustaja joka luo vapaaehtoistapahtumien hallintajärjestelmään sisältöä.
 Vastaa AINA pelkällä validilla JSON-objektilla ilman muuta tekstiä, selityksiä tai markdown-muotoilua.
@@ -16,13 +18,34 @@ Vastaa täsmälleen tässä JSON-muodossa:
 
   events: `Olet avustaja joka luo vapaaehtoistapahtumien hallintajärjestelmään sisältöä.
 Vastaa AINA pelkällä validilla JSON-objektilla ilman muuta tekstiä, selityksiä tai markdown-muotoilua.
-Tänään on ${new Date().toISOString().split('T')[0]}.
+Tänään on ${today}.
 
 Generoi käyttäjän pyynnön perusteella tapahtumia. Käytä suomenkielistä kuvausta.
 Päivämäärät muodossa "YYYY-MM-DD". Jos käyttäjä ei mainitse vuotta, käytä tulevaa vuotta.
 
 Vastaa täsmälleen tässä JSON-muodossa:
 {"type":"events","events":[{"name":"Nimi","description":"Kuvaus","location":"Sijainti","start_date":"YYYY-MM-DD","end_date":"YYYY-MM-DD"}]}`,
+
+  tasks: `Olet avustaja joka luo vapaaehtoistapahtumien hallintajärjestelmään sisältöä.
+Vastaa AINA pelkällä validilla JSON-objektilla ilman muuta tekstiä, selityksiä tai markdown-muotoilua.
+
+Generoi käyttäjän pyynnön perusteella tehtäviä tapahtumaan. Tehtävät ovat vapaaehtoistehtäviä kuten "Lipunmyynti", "Järjestyksenvalvonta", "Opastus".
+Kenttä "is_open": true = yleinen tehtävä (kaikille), false = joukkuekohtainen tehtävä.
+Kenttä "team_name": joukkueen nimi jos joukkuekohtainen, null jos yleinen.
+Kenttä "category": tehtävän kategoria (voi olla null).
+
+Vastaa täsmälleen tässä JSON-muodossa:
+{"type":"tasks","tasks":[{"name":"Tehtävän nimi","description":"Kuvaus","category":null,"team_name":null,"is_open":true,"min_age":null,"requires_drivers_license":false,"requires_tieturva":false,"requires_hygiene_passport":false}]}`,
+
+  shifts: `Olet avustaja joka luo vapaaehtoistapahtumien hallintajärjestelmään sisältöä.
+Vastaa AINA pelkällä validilla JSON-objektilla ilman muuta tekstiä, selityksiä tai markdown-muotoilua.
+Tänään on ${today}.
+
+Generoi käyttäjän pyynnön perusteella vuoroja tehtävään. Vuorot ovat ajanjaksoja joihin vapaaehtoinen ilmoittautuu.
+Aikaleimät muodossa "YYYY-MM-DDTHH:MM:SS". Käytä tapahtuman päivämääriä jos annettu.
+
+Vastaa täsmälleen tässä JSON-muodossa:
+{"type":"shifts","shifts":[{"start_time":"YYYY-MM-DDTHH:MM:SS","end_time":"YYYY-MM-DDTHH:MM:SS","max_participants":5,"location":null,"notes":null}]}`,
 }
 
 export const handler: Handler = async (event) => {
@@ -31,7 +54,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { prompt, context } = JSON.parse(event.body ?? '{}')
+    const { prompt, context, eventId, taskId } = JSON.parse(event.body ?? '{}')
 
     if (!prompt || !context) {
       return {
@@ -48,11 +71,16 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    // Lisää kontekstitieto promptiin jos annettu
+    let fullPrompt = prompt
+    if (eventId) fullPrompt = `[Tapahtuma ID: ${eventId}]\n${prompt}`
+    if (taskId) fullPrompt = `[Tehtävä ID: ${taskId}]\n${prompt}`
+
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       system: systemPrompt,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: fullPrompt }],
     })
 
     const text = (message.content[0] as { type: 'text'; text: string }).text

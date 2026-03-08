@@ -430,7 +430,7 @@ export default function EventPage() {
 
       <main className="max-w-2xl mx-auto px-4 py-4">
         {/* Päiväsuodatin — pill-napit scrollattavassa rivissä */}
-        {availableDays.length > 1 && (
+        {availableDays.length >= 1 && (
           <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 -mx-4 px-4">
             <Filter size={14} className="text-gray-400 shrink-0" />
             <button
