@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import AdminLayout from '../../components/AdminLayout'
+import AdminAIAssistant from '../../components/AdminAIAssistant'
 import { supabase } from '../../lib/supabase'
 import type { Event, EventInsert } from '../../lib/database.types'
 import { Plus, Pencil, Trash2, Eye, EyeOff, X, ListChecks } from 'lucide-react'
@@ -306,6 +307,7 @@ export default function AdminEvents() {
           </div>
         )}
       </div>
+      <AdminAIAssistant context="events" onSaved={fetchEvents} />
     </AdminLayout>
   )
 }

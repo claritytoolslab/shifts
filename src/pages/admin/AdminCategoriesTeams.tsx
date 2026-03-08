@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
+import AdminAIAssistant from '../../components/AdminAIAssistant'
 import { supabase } from '../../lib/supabase'
 import type { Category, Team } from '../../lib/database.types'
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
@@ -214,6 +215,7 @@ export default function AdminCategoriesTeams() {
           />
         </div>
       </div>
+      <AdminAIAssistant context="categories_teams" onSaved={fetchAll} />
     </AdminLayout>
   )
 }

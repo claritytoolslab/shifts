@@ -1,0 +1,83 @@
+import Anthropic from '@anthropic-ai/sdk'
+import type { Handler } from '@netlify/functions'
+
+const client = new Anthropic()
+
+const SYSTEM_PROMPTS: Record<string, string> = {
+  categories_teams: `Olet avustaja joka luo vapaaehtoistapahtumien hallintajärjestelmään sisältöä.
+Vastaa AINA pelkällä validilla JSON-objektilla ilman muuta tekstiä, selityksiä tai markdown-muotoilua.
+
+Generoi käyttäjän pyynnön perusteella kategorioita ja tiimejä tapahtumalle.
+Kategoriat ovat tehtäväluokkia kuten "Lipunmyynti", "Järjestyksenvalvonta", "Ruokailu", "Opastus".
+Tiimit ovat vapaaehtoisryhmiä kuten "A-tiimi", "Iltavuoro", tai joukkueiden nimiä turnauksissa.
+
+Vastaa täsmälleen tässä JSON-muodossa:
+{"type":"categories_teams","categories":["Kategoria1","Kategoria2"],"teams":["Tiimi1","Tiimi2"]}`,
+
+  events: `Olet avustaja joka luo vapaaehtoistapahtumien hallintajärjestelmään sisältöä.
+Vastaa AINA pelkällä validilla JSON-objektilla ilman muuta tekstiä, selityksiä tai markdown-muotoilua.
+Tänään on ${new Date().toISOString().split('T')[0]}.
+
+Generoi käyttäjän pyynnön perusteella tapahtumia. Käytä suomenkielistä kuvausta.
+Päivämäärät muodossa "YYYY-MM-DD". Jos käyttäjä ei mainitse vuotta, käytä tulevaa vuotta.
+
+Vastaa täsmälleen tässä JSON-muodossa:
+{"type":"events","events":[{"name":"Nimi","description":"Kuvaus","location":"Sijainti","start_date":"YYYY-MM-DD","end_date":"YYYY-MM-DD"}]}`,
+}
+
+export const handler: Handler = async (event) => {
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' }
+  }
+
+  try {
+    const { prompt, context } = JSON.parse(event.body ?? '{}')
+
+    if (!prompt || !context) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'prompt ja context vaaditaan' }),
+      }
+    }
+
+    const systemPrompt = SYSTEM_PROMPTS[context]
+    if (!systemPrompt) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Tuntematon context' }),
+      }
+    }
+
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: prompt }],
+    })
+
+    const text = (message.content[0] as { type: 'text'; text: string }).text
+
+    // Suojattu JSON-parsinta: etsitään ensimmäinen {...} jos AI lisäisi muuta tekstiä
+    const match = text.match(/\{[\s\S]*\}/)
+    if (!match) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'AI ei palauttanut kelvollista JSONia' }),
+      }
+    }
+
+    const result = JSON.parse(match[0])
+
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ result }),
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Tuntematon virhe'
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: message }),
+    }
+  }
+}
