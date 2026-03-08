@@ -17,6 +17,8 @@ export default function AdminEventDetail() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [existingCategories, setExistingCategories] = useState<string[]>([])
+  const [existingTeams, setExistingTeams] = useState<string[]>([])
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<TaskForm>()
 
@@ -31,7 +33,12 @@ export default function AdminEventDetail() {
     ])
 
     if (eventRes.data) setEvent(eventRes.data as Event)
-    if (tasksRes.data) setTasks(tasksRes.data as Task[])
+    if (tasksRes.data) {
+      const taskList = tasksRes.data as Task[]
+      setTasks(taskList)
+      setExistingCategories([...new Set(taskList.map(t => t.category).filter(Boolean) as string[])])
+      setExistingTeams([...new Set(taskList.map(t => t.team_name).filter(Boolean) as string[])])
+    }
     setLoading(false)
   }
 
@@ -228,9 +235,16 @@ export default function AdminEventDetail() {
                   <label className="label">Tehtäväkategoria</label>
                   <input
                     {...register('category')}
+                    list="categories-list"
                     className="input"
                     placeholder="esim. Myymälä, Liikenne, Keittiö"
+                    autoComplete="off"
                   />
+                  <datalist id="categories-list">
+                    {existingCategories.map(cat => (
+                      <option key={cat} value={cat} />
+                    ))}
+                  </datalist>
                   <p className="text-xs text-gray-400 mt-1">Käytetään suodattamiseen käyttäjänäkymässä</p>
                 </div>
 
@@ -248,9 +262,16 @@ export default function AdminEventDetail() {
                     <label className="label">Tiimi (jos tiimille varattu)</label>
                     <input
                       {...register('team_name')}
+                      list="teams-list"
                       className="input"
                       placeholder="esim. Joukkue A, Seura ry"
+                      autoComplete="off"
                     />
+                    <datalist id="teams-list">
+                      {existingTeams.map(team => (
+                        <option key={team} value={team} />
+                      ))}
+                    </datalist>
                     <p className="text-xs text-gray-400 mt-1">Jätä tyhjäksi jos tehtävä on yleinen</p>
                   </div>
                 </div>
