@@ -79,7 +79,7 @@ export default function EventPage() {
   const categoryGroups = useMemo(() => {
     const groups: Record<string, TaskWithShifts[]> = {}
     tasks.filter(t => t.is_open).forEach(task => {
-      const key = task.category ?? 'Yleiset tehtävät'
+      const key = task.category || 'Yleiset tehtävät'
       if (!groups[key]) groups[key] = []
       groups[key].push(task)
     })
@@ -89,7 +89,7 @@ export default function EventPage() {
   const teamGroups = useMemo(() => {
     const groups: Record<string, TaskWithShifts[]> = {}
     tasks.filter(t => !t.is_open).forEach(task => {
-      const key = task.team_name ?? 'Muu tiimi'
+      const key = task.team_name || 'Muu tiimi'
       if (!groups[key]) groups[key] = []
       groups[key].push(task)
     })
@@ -336,7 +336,7 @@ export default function EventPage() {
               {categoryKeys.length > 0 && (
                 <div>
                   <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
-                    Tehtäväkategoriat
+                    Yleiset tehtävät
                   </h2>
                   <div className="space-y-2">
                     {categoryKeys.map(cat => {
@@ -373,7 +373,7 @@ export default function EventPage() {
               {teamKeys.length > 0 && (
                 <div>
                   <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
-                    Tiimit
+                    Joukkuekohtaiset tehtävät
                   </h2>
                   <div className="space-y-2">
                     {teamKeys.map(team => {
