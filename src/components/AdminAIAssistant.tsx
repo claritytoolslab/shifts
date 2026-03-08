@@ -53,9 +53,37 @@ const CONTEXT_PLACEHOLDERS: Record<AIContext, string> = {
   events: 'esim. "Tikkurila Cup 2026, jalkapallo, Vantaa, heinäkuu"',
 }
 
+const STORAGE_KEY = 'ai-assistant-messages'
+
+function loadMessages(): Message[] {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return parsed.map((m: Message) => ({
+      ...m,
+      selectedCategories: m.selectedCategories ? new Set(m.selectedCategories as unknown as string[]) : undefined,
+      selectedTeams: m.selectedTeams ? new Set(m.selectedTeams as unknown as string[]) : undefined,
+      selectedEvents: m.selectedEvents ? new Set(m.selectedEvents as unknown as number[]) : undefined,
+    }))
+  } catch { return [] }
+}
+
+function saveMessages(msgs: Message[]) {
+  try {
+    const serializable = msgs.map(m => ({
+      ...m,
+      selectedCategories: m.selectedCategories ? Array.from(m.selectedCategories) : undefined,
+      selectedTeams: m.selectedTeams ? Array.from(m.selectedTeams) : undefined,
+      selectedEvents: m.selectedEvents ? Array.from(m.selectedEvents) : undefined,
+    }))
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(serializable))
+  } catch { /* ignore */ }
+}
+
 export default function AdminAIAssistant({ context, onSaved, inline = false }: Props) {
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>(loadMessages)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -66,6 +94,7 @@ export default function AdminAIAssistant({ context, onSaved, inline = false }: P
   }, [open])
 
   useEffect(() => {
+    saveMessages(messages)
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
@@ -193,7 +222,7 @@ export default function AdminAIAssistant({ context, onSaved, inline = false }: P
               <div className="flex items-center gap-1">
                 {messages.length > 0 && (
                   <button
-                    onClick={() => setMessages([])}
+                    onClick={() => { setMessages([]); sessionStorage.removeItem(STORAGE_KEY) }}
                     className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"
                     title="Tyhjennä chat"
                   >
