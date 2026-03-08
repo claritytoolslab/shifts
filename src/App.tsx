@@ -13,6 +13,7 @@ import AdminEvents from './pages/admin/AdminEvents'
 import AdminEventDetail from './pages/admin/AdminEventDetail'
 import AdminTaskDetail from './pages/admin/AdminTaskDetail'
 import AdminRegistrations from './pages/admin/AdminRegistrations'
+import AdminCategoriesTeams from './pages/admin/AdminCategoriesTeams'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -80,6 +81,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <AdminRegistrations />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/categories"
+        element={
+          <ProtectedRoute>
+            <AdminCategoriesTeams />
           </ProtectedRoute>
         }
       />

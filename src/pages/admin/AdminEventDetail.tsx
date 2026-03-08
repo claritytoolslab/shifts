@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
-import type { Event, Task, TaskInsert } from '../../lib/database.types'
+import type { Event, Task, TaskInsert, Category, Team } from '../../lib/database.types'
 import { Plus, Pencil, Trash2, ChevronRight, X, ArrowLeft } from 'lucide-react'
 
 type TaskForm = Omit<TaskInsert, 'id' | 'event_id' | 'created_at' | 'updated_at'>
@@ -17,8 +17,8 @@ export default function AdminEventDetail() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [existingCategories, setExistingCategories] = useState<string[]>([])
-  const [existingTeams, setExistingTeams] = useState<string[]>([])
+  const [allCategories, setAllCategories] = useState<Category[]>([])
+  const [allTeams, setAllTeams] = useState<Team[]>([])
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<TaskForm>()
 
@@ -27,18 +27,17 @@ export default function AdminEventDetail() {
   }, [eventId])
 
   async function fetchData() {
-    const [eventRes, tasksRes] = await Promise.all([
+    const [eventRes, tasksRes, catRes, teamRes] = await Promise.all([
       supabase.from('events').select('*').eq('id', eventId!).single(),
       supabase.from('tasks').select('*').eq('event_id', eventId!).order('created_at'),
+      supabase.from('categories').select('*').order('name'),
+      supabase.from('teams').select('*').order('name'),
     ])
 
     if (eventRes.data) setEvent(eventRes.data as Event)
-    if (tasksRes.data) {
-      const taskList = tasksRes.data as Task[]
-      setTasks(taskList)
-      setExistingCategories([...new Set(taskList.map(t => t.category).filter(Boolean) as string[])])
-      setExistingTeams([...new Set(taskList.map(t => t.team_name).filter(Boolean) as string[])])
-    }
+    if (tasksRes.data) setTasks(tasksRes.data as Task[])
+    if (catRes.data) setAllCategories(catRes.data as Category[])
+    if (teamRes.data) setAllTeams(teamRes.data as Team[])
     setLoading(false)
   }
 
@@ -79,6 +78,12 @@ export default function AdminEventDetail() {
   async function onSubmit(data: TaskForm) {
     setSaving(true)
     setError('')
+
+    if (!data.category && !data.team_name) {
+      setError('Valitse tehtävälle kategoria tai tiimi.')
+      setSaving(false)
+      return
+    }
 
     const payload = {
       ...data,
@@ -232,19 +237,13 @@ export default function AdminEventDetail() {
                 </div>
 
                 <div>
-                  <label className="label">Tehtäväkategoria</label>
-                  <input
-                    {...register('category')}
-                    list="categories-list"
-                    className="input"
-                    placeholder="esim. Myymälä, Liikenne, Keittiö"
-                    autoComplete="off"
-                  />
-                  <datalist id="categories-list">
-                    {existingCategories.map(cat => (
-                      <option key={cat} value={cat} />
+                  <label className="label">Tehtäväkategoria <span className="text-red-500 text-xs font-normal">(pakollinen, jos ei tiimiä)</span></label>
+                  <select {...register('category')} className="input">
+                    <option value="">– ei kategoriaa –</option>
+                    {allCategories.map(cat => (
+                      <option key={cat.id} value={cat.name}>{cat.name}</option>
                     ))}
-                  </datalist>
+                  </select>
                   <p className="text-xs text-gray-400 mt-1">Käytetään suodattamiseen käyttäjänäkymässä</p>
                 </div>
 
@@ -260,18 +259,12 @@ export default function AdminEventDetail() {
                   </label>
                   <div>
                     <label className="label">Tiimi (jos tiimille varattu)</label>
-                    <input
-                      {...register('team_name')}
-                      list="teams-list"
-                      className="input"
-                      placeholder="esim. Joukkue A, Seura ry"
-                      autoComplete="off"
-                    />
-                    <datalist id="teams-list">
-                      {existingTeams.map(team => (
-                        <option key={team} value={team} />
+                    <select {...register('team_name')} className="input">
+                      <option value="">– ei tiimiä –</option>
+                      {allTeams.map(team => (
+                        <option key={team.id} value={team.name}>{team.name}</option>
                       ))}
-                    </datalist>
+                    </select>
                     <p className="text-xs text-gray-400 mt-1">Jätä tyhjäksi jos tehtävä on yleinen</p>
                   </div>
                 </div>

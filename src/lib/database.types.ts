@@ -149,6 +149,18 @@ export interface Database {
           }
         ]
       }
+      categories: {
+        Row: { id: string; name: string; created_at: string }
+        Insert: { id?: string; name: string; created_at?: string }
+        Update: { name?: string }
+        Relationships: []
+      }
+      teams: {
+        Row: { id: string; name: string; created_at: string }
+        Insert: { id?: string; name: string; created_at?: string }
+        Update: { name?: string }
+        Relationships: []
+      }
       registrations: {
         Row: {
           id: string
@@ -227,6 +239,9 @@ export type Task = Database['public']['Tables']['tasks']['Row']
 export type Shift = Database['public']['Tables']['shifts']['Row']
 export type Registration = Database['public']['Tables']['registrations']['Row']
 export type ShiftAvailability = Database['public']['Views']['shift_availability']['Row']
+
+export type Category = Database['public']['Tables']['categories']['Row']
+export type Team = Database['public']['Tables']['teams']['Row']
 
 export type EventInsert = Database['public']['Tables']['events']['Insert']
 export type TaskInsert = Database['public']['Tables']['tasks']['Insert']
