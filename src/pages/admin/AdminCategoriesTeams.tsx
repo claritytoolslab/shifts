@@ -188,34 +188,41 @@ export default function AdminCategoriesTeams() {
 
   return (
     <AdminLayout>
-      <div>
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Kategoriat & Tiimit</h2>
-          <p className="text-sm text-gray-500 mt-1">Globaalit listat tehtävien luokitteluun</p>
+      <div className="flex gap-6 h-[calc(100vh-8rem)]">
+        {/* Vasen: Kategoriat & Tiimit */}
+        <div className="flex-1 min-w-0 overflow-y-auto">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Kategoriat & Tiimit</h2>
+            <p className="text-sm text-gray-500 mt-1">Globaalit listat tehtävien luokitteluun</p>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <ItemList
+              title="Kategoriat"
+              items={categories}
+              onAdd={addCategory}
+              onRename={renameCategory}
+              onDelete={deleteCategory}
+            />
+            <ItemList
+              title="Tiimit"
+              items={teams}
+              onAdd={addTeam}
+              onRename={renameTeam}
+              onDelete={deleteTeam}
+            />
+          </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>
-        )}
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <ItemList
-            title="Kategoriat"
-            items={categories}
-            onAdd={addCategory}
-            onRename={renameCategory}
-            onDelete={deleteCategory}
-          />
-          <ItemList
-            title="Tiimit"
-            items={teams}
-            onAdd={addTeam}
-            onRename={renameTeam}
-            onDelete={deleteTeam}
-          />
+        {/* Oikea: AI-chat kiinteänä paneelina */}
+        <div className="w-80 shrink-0 flex flex-col border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+          <AdminAIAssistant context="categories_teams" onSaved={fetchAll} inline />
         </div>
       </div>
-      <AdminAIAssistant context="categories_teams" onSaved={fetchAll} />
     </AdminLayout>
   )
 }
