@@ -3,10 +3,18 @@ import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
 import type { Category, Team, Task, Event } from '../../lib/database.types'
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
-import { useForm } from 'react-hook-form'
-import type { TaskInsert } from '../../lib/database.types'
 
-type TaskForm = Omit<TaskInsert, 'id' | 'event_id' | 'created_at' | 'updated_at'>
+interface TaskFormState {
+  event_id: string
+  name: string
+  description: string
+  category: string
+  min_age: string
+  requires_drivers_license: boolean
+  requires_tieturva: boolean
+  requires_hygiene_passport: boolean
+  other_requirements: string
+}
 
 function ItemList<T extends { id: string; name: string }>({
   title,
@@ -136,9 +144,27 @@ export default function AdminCategoriesTeams() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [taskSaving, setTaskSaving] = useState(false)
   const [taskError, setTaskError] = useState('')
+  const [taskFormErrors, setTaskFormErrors] = useState<Record<string, string>>({})
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all')
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<TaskForm & { event_id: string }>()
+  const emptyTaskForm = (): TaskFormState => ({
+    event_id: '',
+    name: '',
+    description: '',
+    category: '',
+    min_age: '',
+    requires_drivers_license: false,
+    requires_tieturva: false,
+    requires_hygiene_passport: false,
+    other_requirements: '',
+  })
+
+  const [taskForm, setTaskForm] = useState<TaskFormState>(emptyTaskForm())
+
+  function setTaskField<K extends keyof TaskFormState>(key: K, value: TaskFormState[K]) {
+    setTaskForm(prev => ({ ...prev, [key]: value }))
+    setTaskFormErrors(prev => ({ ...prev, [key]: '' }))
+  }
 
   useEffect(() => { fetchAll() }, [])
 
@@ -193,54 +219,58 @@ export default function AdminCategoriesTeams() {
   // Tehtävät
   function openCreateTaskForm() {
     setEditingTask(null)
-    reset({ name: '', description: '', category: '', min_age: undefined, event_id: '' })
+    setTaskForm(emptyTaskForm())
+    setTaskFormErrors({})
     setShowTaskForm(true)
     setTaskError('')
   }
 
   function openEditTaskForm(task: Task) {
     setEditingTask(task)
-    reset({
+    setTaskForm({
+      event_id: task.event_id,
       name: task.name,
       description: task.description ?? '',
       category: task.category ?? '',
-      min_age: task.min_age ?? undefined,
+      min_age: task.min_age != null ? String(task.min_age) : '',
       requires_drivers_license: task.requires_drivers_license,
       requires_tieturva: task.requires_tieturva,
       requires_hygiene_passport: task.requires_hygiene_passport,
       other_requirements: task.other_requirements ?? '',
-      event_id: task.event_id,
     })
+    setTaskFormErrors({})
     setShowTaskForm(true)
     setTaskError('')
   }
 
-  async function onTaskSubmit(data: TaskForm & { event_id: string }) {
-    setTaskSaving(true)
-    setTaskError('')
-
-    if (!data.event_id) {
-      setTaskError('Valitse tapahtuma')
-      setTaskSaving(false)
+  async function onTaskSubmit() {
+    const errs: Record<string, string> = {}
+    if (!taskForm.event_id) errs.event_id = 'Valitse tapahtuma'
+    if (!taskForm.name.trim()) errs.name = 'Nimi on pakollinen'
+    if (Object.keys(errs).length > 0) {
+      setTaskFormErrors(errs)
       return
     }
 
+    setTaskSaving(true)
+    setTaskError('')
+
     const payload = {
-      name: data.name,
-      description: data.description || null,
-      category: data.category || null,
-      min_age: data.min_age ? Number(data.min_age) : null,
-      requires_drivers_license: Boolean(data.requires_drivers_license),
-      requires_tieturva: Boolean(data.requires_tieturva),
-      requires_hygiene_passport: Boolean(data.requires_hygiene_passport),
-      other_requirements: data.other_requirements || null,
+      name: taskForm.name.trim(),
+      description: taskForm.description || null,
+      category: taskForm.category || null,
+      min_age: taskForm.min_age ? Number(taskForm.min_age) : null,
+      requires_drivers_license: taskForm.requires_drivers_license,
+      requires_tieturva: taskForm.requires_tieturva,
+      requires_hygiene_passport: taskForm.requires_hygiene_passport,
+      other_requirements: taskForm.other_requirements || null,
     }
 
     if (editingTask) {
       const { error } = await supabase.from('tasks').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingTask.id)
       if (error) { setTaskError('Tallennus epäonnistui: ' + error.message); setTaskSaving(false); return }
     } else {
-      const { error } = await supabase.from('tasks').insert({ ...payload, event_id: data.event_id })
+      const { error } = await supabase.from('tasks').insert({ ...payload, event_id: taskForm.event_id })
       if (error) { setTaskError('Luonti epäonnistui: ' + error.message); setTaskSaving(false); return }
     }
 
@@ -370,35 +400,51 @@ export default function AdminCategoriesTeams() {
                 <h3 className="text-lg font-semibold">{editingTask ? 'Muokkaa tehtävää' : 'Uusi tehtävä'}</h3>
                 <button onClick={() => setShowTaskForm(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
               </div>
-              <form onSubmit={handleSubmit(onTaskSubmit)} className="p-6 space-y-4">
+              <div className="p-6 space-y-4">
                 <div>
                   <label className="label">Tapahtuma *</label>
-                  <select {...register('event_id', { required: true })} className="input">
+                  <select
+                    value={taskForm.event_id}
+                    onChange={e => setTaskField('event_id', e.target.value)}
+                    className="input"
+                    disabled={!!editingTask}
+                  >
                     <option value="">— Valitse tapahtuma —</option>
                     {events.map(ev => (
                       <option key={ev.id} value={ev.id}>{ev.name} ({ev.start_date})</option>
                     ))}
                   </select>
+                  {taskFormErrors.event_id && <p className="text-red-500 text-xs mt-1">{taskFormErrors.event_id}</p>}
                 </div>
 
                 <div>
                   <label className="label">Tehtävän nimi *</label>
                   <input
-                    {...register('name', { required: 'Nimi on pakollinen' })}
+                    value={taskForm.name}
+                    onChange={e => setTaskField('name', e.target.value)}
                     className="input"
                     placeholder="esim. Järjestysmies, Buffa, Opas"
                   />
-                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+                  {taskFormErrors.name && <p className="text-red-500 text-xs mt-1">{taskFormErrors.name}</p>}
                 </div>
 
                 <div>
                   <label className="label">Kuvaus</label>
-                  <textarea {...register('description')} className="input" rows={2} />
+                  <textarea
+                    value={taskForm.description}
+                    onChange={e => setTaskField('description', e.target.value)}
+                    className="input"
+                    rows={2}
+                  />
                 </div>
 
                 <div>
                   <label className="label">Kategoria</label>
-                  <select {...register('category')} className="input">
+                  <select
+                    value={taskForm.category}
+                    onChange={e => setTaskField('category', e.target.value)}
+                    className="input"
+                  >
                     <option value="">— ei kategoriaa —</option>
                     {categories.map(cat => (
                       <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -408,22 +454,45 @@ export default function AdminCategoriesTeams() {
 
                 <div>
                   <label className="label">Minimi-ikä</label>
-                  <input type="number" min={0} max={100} {...register('min_age')} className="input" placeholder="esim. 18" />
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={taskForm.min_age}
+                    onChange={e => setTaskField('min_age', e.target.value)}
+                    className="input"
+                    placeholder="esim. 18"
+                  />
                 </div>
 
                 <div>
                   <label className="label">Erityisvaatimukset</label>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...register('requires_drivers_license')} className="w-4 h-4 rounded border-gray-300" />
+                      <input
+                        type="checkbox"
+                        checked={taskForm.requires_drivers_license}
+                        onChange={e => setTaskField('requires_drivers_license', e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
                       B-ajokortti
                     </label>
                     <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...register('requires_tieturva')} className="w-4 h-4 rounded border-gray-300" />
+                      <input
+                        type="checkbox"
+                        checked={taskForm.requires_tieturva}
+                        onChange={e => setTaskField('requires_tieturva', e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
                       Tieturva 1/2
                     </label>
                     <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" {...register('requires_hygiene_passport')} className="w-4 h-4 rounded border-gray-300" />
+                      <input
+                        type="checkbox"
+                        checked={taskForm.requires_hygiene_passport}
+                        onChange={e => setTaskField('requires_hygiene_passport', e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
                       Hygieniapassi
                     </label>
                   </div>
@@ -431,18 +500,23 @@ export default function AdminCategoriesTeams() {
 
                 <div>
                   <label className="label">Muut vaatimukset</label>
-                  <input {...register('other_requirements')} className="input" placeholder="esim. EA1-kurssi" />
+                  <input
+                    value={taskForm.other_requirements}
+                    onChange={e => setTaskField('other_requirements', e.target.value)}
+                    className="input"
+                    placeholder="esim. EA1-kurssi"
+                  />
                 </div>
 
                 {taskError && <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{taskError}</div>}
 
                 <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={taskSaving} className="btn-primary flex-1">
+                  <button onClick={onTaskSubmit} disabled={taskSaving} className="btn-primary flex-1">
                     {taskSaving ? 'Tallennetaan...' : editingTask ? 'Tallenna' : 'Luo tehtävä'}
                   </button>
                   <button type="button" onClick={() => setShowTaskForm(false)} className="btn-secondary">Peruuta</button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
