@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
 import AdminLayout from '../../components/AdminLayout'
 import AdminAIAssistant from '../../components/AdminAIAssistant'
 import { supabase } from '../../lib/supabase'
-import type { Event, EventInsert } from '../../lib/database.types'
+import type { Event } from '../../lib/database.types'
 import { Plus, Pencil, Trash2, Eye, EyeOff, X, ListChecks } from 'lucide-react'
 import { format } from 'date-fns'
 import { fi } from 'date-fns/locale'
 
-type EventForm = Omit<EventInsert, 'id' | 'created_at' | 'updated_at'>
+interface EventFormState {
+  name: string
+  description: string
+  start_date: string
+  end_date: string
+  location: string
+  is_active: boolean
+  privacy_contact: string
+  privacy_retention: string
+}
 
 export default function AdminEvents() {
   const [events, setEvents] = useState<Event[]>([])
@@ -18,8 +26,25 @@ export default function AdminEvents() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<EventForm>()
+  const emptyForm = (): EventFormState => ({
+    name: '',
+    description: '',
+    start_date: '',
+    end_date: '',
+    location: '',
+    is_active: true,
+    privacy_contact: '',
+    privacy_retention: '12 kuukautta',
+  })
+
+  const [form, setForm] = useState<EventFormState>(emptyForm())
+
+  function setField<K extends keyof EventFormState>(key: K, value: EventFormState[K]) {
+    setForm(prev => ({ ...prev, [key]: value }))
+    setFormErrors(prev => ({ ...prev, [key]: '' }))
+  }
 
   useEffect(() => {
     fetchEvents()
@@ -37,22 +62,15 @@ export default function AdminEvents() {
 
   function openCreateForm() {
     setEditingEvent(null)
-    reset({
-      name: '',
-      description: '',
-      start_date: '',
-      end_date: '',
-      location: '',
-      is_active: true,
-      privacy_contact: '',
-      privacy_retention: '12 kuukautta',
-    })
+    setForm(emptyForm())
+    setFormErrors({})
+    setError('')
     setShowForm(true)
   }
 
   function openEditForm(event: Event) {
     setEditingEvent(event)
-    reset({
+    setForm({
       name: event.name,
       description: event.description ?? '',
       start_date: event.start_date,
@@ -62,14 +80,37 @@ export default function AdminEvents() {
       privacy_contact: event.privacy_contact ?? '',
       privacy_retention: event.privacy_retention ?? '12 kuukautta',
     })
+    setFormErrors({})
+    setError('')
     setShowForm(true)
   }
 
-  async function onSubmit(data: EventForm) {
+  async function handleSave() {
+    const errs: Record<string, string> = {}
+    if (!form.name.trim()) errs.name = 'Nimi on pakollinen'
+    if (!form.start_date) errs.start_date = 'Alkupäivä on pakollinen'
+    if (!form.end_date) errs.end_date = 'Loppupäivä on pakollinen'
+    if (form.start_date && form.end_date && form.end_date < form.start_date) {
+      errs.end_date = 'Loppupäivän pitää olla alkupäivän jälkeen'
+    }
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs)
+      return
+    }
+
     setSaving(true)
     setError('')
 
-    const payload = { ...data, is_active: Boolean(data.is_active) }
+    const payload = {
+      name: form.name.trim(),
+      description: form.description || null,
+      start_date: form.start_date,
+      end_date: form.end_date,
+      location: form.location || null,
+      is_active: form.is_active,
+      privacy_contact: form.privacy_contact || null,
+      privacy_retention: form.privacy_retention || null,
+    }
 
     if (editingEvent) {
       const { error } = await supabase
@@ -78,19 +119,20 @@ export default function AdminEvents() {
         .eq('id', editingEvent.id)
       if (error) {
         setError('Tallennus epäonnistui: ' + error.message)
-      } else {
-        setShowForm(false)
-        fetchEvents()
+        setSaving(false)
+        return
       }
     } else {
       const { error } = await supabase.from('events').insert(payload)
       if (error) {
         setError('Luonti epäonnistui: ' + error.message)
-      } else {
-        setShowForm(false)
-        fetchEvents()
+        setSaving(false)
+        return
       }
     }
+
+    setShowForm(false)
+    fetchEvents()
     setSaving(false)
   }
 
@@ -131,21 +173,23 @@ export default function AdminEvents() {
                   <X size={20} />
                 </button>
               </div>
-              <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+              <div className="p-6 space-y-4">
                 <div>
                   <label className="label">Tapahtuman nimi *</label>
                   <input
-                    {...register('name', { required: 'Nimi on pakollinen' })}
+                    value={form.name}
+                    onChange={e => setField('name', e.target.value)}
                     className="input"
                     placeholder="esim. Kesätapahtuma 2025"
                   />
-                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+                  {formErrors.name && <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>}
                 </div>
 
                 <div>
                   <label className="label">Kuvaus</label>
                   <textarea
-                    {...register('description')}
+                    value={form.description}
+                    onChange={e => setField('description', e.target.value)}
                     className="input"
                     rows={3}
                     placeholder="Lyhyt kuvaus tapahtumasta"
@@ -157,26 +201,29 @@ export default function AdminEvents() {
                     <label className="label">Alkupäivä *</label>
                     <input
                       type="date"
-                      {...register('start_date', { required: 'Alkupäivä on pakollinen' })}
+                      value={form.start_date}
+                      onChange={e => setField('start_date', e.target.value)}
                       className="input"
                     />
-                    {errors.start_date && <p className="text-red-500 text-sm mt-1">{errors.start_date.message}</p>}
+                    {formErrors.start_date && <p className="text-red-500 text-sm mt-1">{formErrors.start_date}</p>}
                   </div>
                   <div>
                     <label className="label">Loppupäivä *</label>
                     <input
                       type="date"
-                      {...register('end_date', { required: 'Loppupäivä on pakollinen' })}
+                      value={form.end_date}
+                      onChange={e => setField('end_date', e.target.value)}
                       className="input"
                     />
-                    {errors.end_date && <p className="text-red-500 text-sm mt-1">{errors.end_date.message}</p>}
+                    {formErrors.end_date && <p className="text-red-500 text-sm mt-1">{formErrors.end_date}</p>}
                   </div>
                 </div>
 
                 <div>
                   <label className="label">Sijainti</label>
                   <input
-                    {...register('location')}
+                    value={form.location}
+                    onChange={e => setField('location', e.target.value)}
                     className="input"
                     placeholder="esim. Helsinki, Kaisaniemen puisto"
                   />
@@ -186,7 +233,8 @@ export default function AdminEvents() {
                   <input
                     type="checkbox"
                     id="is_active"
-                    {...register('is_active')}
+                    checked={form.is_active}
+                    onChange={e => setField('is_active', e.target.checked)}
                     className="w-4 h-4 rounded border-gray-300"
                   />
                   <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
@@ -200,7 +248,8 @@ export default function AdminEvents() {
                     <div>
                       <label className="label">Järjestäjän yhteystiedot</label>
                       <textarea
-                        {...register('privacy_contact')}
+                        value={form.privacy_contact}
+                        onChange={e => setField('privacy_contact', e.target.value)}
                         className="input"
                         rows={3}
                         placeholder={"Organisaatio ry\nKatu 1, 00100 Helsinki\ninfo@org.fi"}
@@ -210,7 +259,8 @@ export default function AdminEvents() {
                     <div>
                       <label className="label">Tietojen säilytysaika</label>
                       <input
-                        {...register('privacy_retention')}
+                        value={form.privacy_retention}
+                        onChange={e => setField('privacy_retention', e.target.value)}
                         className="input"
                         placeholder="esim. 12 kuukautta"
                       />
@@ -223,14 +273,14 @@ export default function AdminEvents() {
                 )}
 
                 <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={saving} className="btn-primary flex-1">
+                  <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
                     {saving ? 'Tallennetaan...' : editingEvent ? 'Tallenna muutokset' : 'Luo tapahtuma'}
                   </button>
                   <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
                     Peruuta
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
@@ -311,4 +361,3 @@ export default function AdminEvents() {
     </AdminLayout>
   )
 }
-
