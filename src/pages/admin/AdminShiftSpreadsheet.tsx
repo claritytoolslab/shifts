@@ -159,10 +159,11 @@ export default function AdminShiftSpreadsheet() {
       if (r._status === 'saved') updated._status = 'dirty'
 
       // Pidä lopetusaika aina >= aloitusaika
-      if (field === 'startDay' || field === 'startHour' || field === 'startMinute') {
-        const startTs = `${updated.startDay}T${updated.startHour}:${updated.startMinute}`
-        const endTs = `${updated.endDay}T${updated.endHour}:${updated.endMinute}`
-        if (endTs < startTs) {
+      const isStartField = field === 'startDay' || field === 'startHour' || field === 'startMinute'
+      if (isStartField) {
+        const startMin = new Date(`${updated.startDay}T${updated.startHour}:${updated.startMinute}:00`).getTime()
+        const endMin = new Date(`${updated.endDay}T${updated.endHour}:${updated.endMinute}:00`).getTime()
+        if (isNaN(startMin) || isNaN(endMin) || endMin <= startMin) {
           updated.endDay = updated.startDay
           updated.endHour = updated.startHour
           updated.endMinute = updated.startMinute
