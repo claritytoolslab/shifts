@@ -158,12 +158,17 @@ export default function AdminShiftSpreadsheet() {
       const updated = { ...r, [field]: value }
       if (r._status === 'saved') updated._status = 'dirty'
 
-      // Pidä lopetusaika aina >= aloitusaika
+      // Pidä lopetusaika aina >= aloitusaika kun muutetaan alkuaikaa
       const isStartField = field === 'startDay' || field === 'startHour' || field === 'startMinute'
       if (isStartField) {
-        const startMin = new Date(`${updated.startDay}T${updated.startHour}:${updated.startMinute}:00`).getTime()
-        const endMin = new Date(`${updated.endDay}T${updated.endHour}:${updated.endMinute}:00`).getTime()
-        if (isNaN(startMin) || isNaN(endMin) || endMin <= startMin) {
+        // Vertaa numeerisesti: päivä*10000 + tunti*100 + minuutti
+        const dayList = eventDays.length > 0 ? eventDays : [updated.startDay]
+        const startDayIdx = dayList.indexOf(updated.startDay)
+        const endDayIdx = dayList.indexOf(updated.endDay)
+        const startVal = startDayIdx * 10000 + Number(updated.startHour) * 100 + Number(updated.startMinute)
+        const endVal = endDayIdx * 10000 + Number(updated.endHour) * 100 + Number(updated.endMinute)
+
+        if (endVal <= startVal || endDayIdx < startDayIdx) {
           updated.endDay = updated.startDay
           updated.endHour = updated.startHour
           updated.endMinute = updated.startMinute
