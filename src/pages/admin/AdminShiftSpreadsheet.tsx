@@ -158,25 +158,38 @@ export default function AdminShiftSpreadsheet() {
       const updated = { ...r, [field]: value }
       if (r._status === 'saved') updated._status = 'dirty'
 
-      // Pidä lopetusaika aina >= aloitusaika kun muutetaan alkuaikaa
+      // Kun alkuaikaa muutetaan, varmista ettei loppu jää taakse
       const isStartField = field === 'startDay' || field === 'startHour' || field === 'startMinute'
       if (isStartField) {
-        // Vertaa numeerisesti: päivä*10000 + tunti*100 + minuutti
-        const dayList = eventDays.length > 0 ? eventDays : [updated.startDay]
-        const startDayIdx = dayList.indexOf(updated.startDay)
-        const endDayIdx = dayList.indexOf(updated.endDay)
-        const startVal = startDayIdx * 10000 + Number(updated.startHour) * 100 + Number(updated.startMinute)
-        const endVal = endDayIdx * 10000 + Number(updated.endHour) * 100 + Number(updated.endMinute)
-
-        if (endVal <= startVal || endDayIdx < startDayIdx) {
+        // Jos endDay on ennen startDay, korjaa
+        if (updated.endDay < updated.startDay) {
           updated.endDay = updated.startDay
+        }
+        // Jos sama päivä ja endHour < startHour, korjaa
+        if (updated.endDay === updated.startDay && updated.endHour < updated.startHour) {
           updated.endHour = updated.startHour
+        }
+        // Jos sama päivä ja tunti ja endMinute < startMinute, korjaa
+        if (updated.endDay === updated.startDay && updated.endHour === updated.startHour && updated.endMinute < updated.startMinute) {
           updated.endMinute = updated.startMinute
         }
       }
 
       return updated
     }))
+  }
+
+  // Laskee sallitut loppu-valinnat rivin alkuajan perusteella
+  function getEndDays(row: ShiftRow) {
+    return eventDays.filter(d => d >= row.startDay)
+  }
+  function getEndHours(row: ShiftRow) {
+    if (row.endDay > row.startDay) return HOURS
+    return HOURS.filter(h => h >= row.startHour)
+  }
+  function getEndMinutes(row: ShiftRow) {
+    if (row.endDay > row.startDay || row.endHour > row.startHour) return MINUTES
+    return MINUTES.filter(m => m >= row.startMinute)
   }
 
   function addRow() {
@@ -534,7 +547,7 @@ export default function AdminShiftSpreadsheet() {
                         onChange={e => updateRow(row._id, 'endDay', e.target.value)}
                         className="border border-gray-200 rounded px-1 py-1 text-sm focus:border-blue-400 outline-none"
                       >
-                        {eventDays.map(d => (
+                        {getEndDays(row).map(d => (
                           <option key={d} value={d}>{format(parseISO(d), 'EEE d.M.', { locale: fi })}</option>
                         ))}
                       </select>
@@ -543,14 +556,14 @@ export default function AdminShiftSpreadsheet() {
                         onChange={e => updateRow(row._id, 'endHour', e.target.value)}
                         className="border border-gray-200 rounded px-1 py-1 text-sm w-14 focus:border-blue-400 outline-none"
                       >
-                        {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+                        {getEndHours(row).map(h => <option key={h} value={h}>{h}</option>)}
                       </select>
                       <select
                         value={row.endMinute}
                         onChange={e => updateRow(row._id, 'endMinute', e.target.value)}
                         className="border border-gray-200 rounded px-1 py-1 text-sm w-14 focus:border-blue-400 outline-none"
                       >
-                        {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+                        {getEndMinutes(row).map(m => <option key={m} value={m}>{m}</option>)}
                       </select>
                     </div>
                   </td>
