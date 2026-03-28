@@ -158,9 +158,20 @@ export default function AdminShiftSpreadsheet() {
       const updated = { ...r, [field]: value }
       if (r._status === 'saved') updated._status = 'dirty'
 
-      // Kun alkupäivää muutetaan, varmista ettei loppu-päivä jää taakse
-      if (field === 'startDay' && updated.endDay < updated.startDay) {
-        updated.endDay = updated.startDay
+      // Kun alkuaikaa muutetaan, varmista ettei loppu jää taakse
+      const isStartField = field === 'startDay' || field === 'startHour' || field === 'startMinute'
+      if (isStartField) {
+        if (updated.endDay < updated.startDay) {
+          updated.endDay = updated.startDay
+        }
+        if (updated.endDay === updated.startDay) {
+          if (updated.endHour < updated.startHour) {
+            updated.endHour = updated.startHour
+          }
+          if (updated.endHour === updated.startHour && updated.endMinute < updated.startMinute) {
+            updated.endMinute = updated.startMinute
+          }
+        }
       }
 
       return updated
@@ -177,6 +188,17 @@ export default function AdminShiftSpreadsheet() {
 
   function getEndDays(row: ShiftRow) {
     return endDayOptions.filter(d => d >= row.startDay)
+  }
+
+  // Samana päivänä tunnit/minuutit rajoitetaan, eri päivänä kaikki sallittu
+  function getEndHours(row: ShiftRow) {
+    if (row.endDay > row.startDay) return HOURS
+    return HOURS.filter(h => h >= row.startHour)
+  }
+  function getEndMinutes(row: ShiftRow) {
+    if (row.endDay > row.startDay) return MINUTES
+    if (row.endHour > row.startHour) return MINUTES
+    return MINUTES.filter(m => m >= row.startMinute)
   }
 
   function addRow() {
@@ -543,14 +565,14 @@ export default function AdminShiftSpreadsheet() {
                         onChange={e => updateRow(row._id, 'endHour', e.target.value)}
                         className="border border-gray-200 rounded px-1 py-1 text-sm w-14 focus:border-blue-400 outline-none"
                       >
-                        {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+                        {getEndHours(row).map(h => <option key={h} value={h}>{h}</option>)}
                       </select>
                       <select
                         value={row.endMinute}
                         onChange={e => updateRow(row._id, 'endMinute', e.target.value)}
                         className="border border-gray-200 rounded px-1 py-1 text-sm w-14 focus:border-blue-400 outline-none"
                       >
-                        {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+                        {getEndMinutes(row).map(m => <option key={m} value={m}>{m}</option>)}
                       </select>
                     </div>
                   </td>
