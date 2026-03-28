@@ -157,6 +157,18 @@ export default function AdminShiftSpreadsheet() {
       if (r._id !== id) return r
       const updated = { ...r, [field]: value }
       if (r._status === 'saved') updated._status = 'dirty'
+
+      // Pidä lopetusaika aina >= aloitusaika
+      if (field === 'startDay' || field === 'startHour' || field === 'startMinute') {
+        const startTs = `${updated.startDay}T${updated.startHour}:${updated.startMinute}`
+        const endTs = `${updated.endDay}T${updated.endHour}:${updated.endMinute}`
+        if (endTs < startTs) {
+          updated.endDay = updated.startDay
+          updated.endHour = updated.startHour
+          updated.endMinute = updated.startMinute
+        }
+      }
+
       return updated
     }))
   }
