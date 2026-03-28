@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
 import type { Event, Task, Team, ShiftAvailability } from '../../lib/database.types'
-import { Plus, Trash2, Save, ArrowLeft, FileText, Filter, Check, X } from 'lucide-react'
+import { Plus, Trash2, Save, ArrowLeft, FileText, Filter, Check, X, Maximize2, Minimize2 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import { fi } from 'date-fns/locale'
 
@@ -55,6 +55,8 @@ export default function AdminShiftSpreadsheet() {
   const [teams, setTeams] = useState<Team[]>([])
   const [rows, setRows] = useState<ShiftRow[]>([])
   const [loading, setLoading] = useState(true)
+
+  const [fullscreen, setFullscreen] = useState(false)
 
   // Suodatus
   const [filterDay, setFilterDay] = useState('')
@@ -295,26 +297,33 @@ export default function AdminShiftSpreadsheet() {
     )
   }
 
-  return (
-    <AdminLayout>
-      <div>
-        {/* Otsikko */}
-        <div className="flex items-center gap-2 mb-4">
-          <Link to={`/admin/events/${eventId}`} className="text-gray-500 hover:text-gray-700">
-            <ArrowLeft size={20} />
-          </Link>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900">{event?.name}</h2>
-            <p className="text-sm text-gray-500">Vuorojen hallinta – taulukkonäkymä</p>
-          </div>
-          <Link
-            to={`/admin/events/${eventId}/report`}
-            className="btn-secondary flex items-center gap-2 text-sm"
-          >
-            <FileText size={16} />
-            Tuntiraportti
-          </Link>
+  const content = (
+    <div>
+      {/* Otsikko */}
+      <div className="flex items-center gap-2 mb-4">
+        <Link to={`/admin/events/${eventId}`} className="text-gray-500 hover:text-gray-700">
+          <ArrowLeft size={20} />
+        </Link>
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold text-gray-900">{event?.name}</h2>
+          <p className="text-sm text-gray-500">Vuorojen hallinta – taulukkonäkymä</p>
         </div>
+        <button
+          onClick={() => setFullscreen(f => !f)}
+          className="btn-secondary flex items-center gap-2 text-sm"
+          title={fullscreen ? 'Pienennä' : 'Koko näyttö'}
+        >
+          {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          {fullscreen ? 'Pienennä' : 'Koko näyttö'}
+        </button>
+        <Link
+          to={`/admin/events/${eventId}/report`}
+          className="btn-secondary flex items-center gap-2 text-sm"
+        >
+          <FileText size={16} />
+          Tuntiraportti
+        </Link>
+      </div>
 
         {/* Suodatus */}
         <div className="flex flex-wrap items-center gap-3 mb-4 bg-gray-50 rounded-xl p-3">
@@ -628,17 +637,26 @@ export default function AdminShiftSpreadsheet() {
           </table>
         </div>
 
-        {/* Lisää rivi */}
-        <div className="mt-3">
-          <button
-            onClick={addRow}
-            className="btn-primary flex items-center gap-2 text-sm"
-          >
-            <Plus size={16} />
-            Lisää rivi
-          </button>
-        </div>
+      {/* Lisää rivi */}
+      <div className="mt-3">
+        <button
+          onClick={addRow}
+          className="btn-primary flex items-center gap-2 text-sm"
+        >
+          <Plus size={16} />
+          Lisää rivi
+        </button>
       </div>
-    </AdminLayout>
+    </div>
   )
+
+  if (fullscreen) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        {content}
+      </div>
+    )
+  }
+
+  return <AdminLayout>{content}</AdminLayout>
 }
