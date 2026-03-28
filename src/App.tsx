@@ -11,11 +11,11 @@ import AdminLogin from './pages/admin/AdminLogin'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminEvents from './pages/admin/AdminEvents'
 import AdminEventDetail from './pages/admin/AdminEventDetail'
-import AdminTaskDetail from './pages/admin/AdminTaskDetail'
 import AdminRegistrations from './pages/admin/AdminRegistrations'
 import AdminCategoriesTeams from './pages/admin/AdminCategoriesTeams'
 import AdminAI from './pages/admin/AdminAI'
-import AdminTeamTasks from './pages/admin/AdminTeamTasks'
+import AdminShiftSpreadsheet from './pages/admin/AdminShiftSpreadsheet'
+import AdminEventReport from './pages/admin/AdminEventReport'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -71,14 +71,6 @@ export default function App() {
         }
       />
       <Route
-        path="/admin/tasks/:taskId"
-        element={
-          <ProtectedRoute>
-            <AdminTaskDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/admin/registrations"
         element={
           <ProtectedRoute>
@@ -95,10 +87,18 @@ export default function App() {
         }
       />
       <Route
-        path="/admin/events/:eventId/teams/:teamName"
+        path="/admin/events/:eventId/shifts"
         element={
           <ProtectedRoute>
-            <AdminTeamTasks />
+            <AdminShiftSpreadsheet />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/events/:eventId/report"
+        element={
+          <ProtectedRoute>
+            <AdminEventReport />
           </ProtectedRoute>
         }
       />

@@ -111,6 +111,7 @@ export interface Database {
           max_participants: number
           location: string | null
           notes: string | null
+          no_show_count: number
           created_at: string
           updated_at: string
         }
@@ -123,6 +124,7 @@ export interface Database {
           max_participants: number
           location?: string | null
           notes?: string | null
+          no_show_count?: number
           created_at?: string
           updated_at?: string
         }
@@ -135,6 +137,7 @@ export interface Database {
           max_participants?: number
           location?: string | null
           notes?: string | null
+          no_show_count?: number
           updated_at?: string
         }
         Relationships: [
@@ -220,6 +223,7 @@ export interface Database {
           max_participants: number
           location: string | null
           notes: string | null
+          no_show_count: number
           confirmed_count: number
           available_spots: number
         }
