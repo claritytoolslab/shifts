@@ -31,6 +31,18 @@ CREATE TABLE tasks (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Sijainnit (tapahtuma-kohtaiset: kaupunki, katu, numero)
+CREATE TABLE locations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  city TEXT NOT NULL,
+  street TEXT NOT NULL,
+  number TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_locations_event_id ON locations(event_id);
+
 -- Vuorot (team_name = null → yleinen, team_name = joukkueen nimi → joukkuekohtainen)
 CREATE TABLE shifts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
