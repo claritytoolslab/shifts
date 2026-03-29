@@ -192,16 +192,8 @@ export default function AdminShiftSpreadsheet() {
     }))
   }
 
-  // Loppu-päivän valinnat: alun päivästä eteenpäin + seuraava päivä tapahtuman jälkeen (yön yli -vuorot)
-  const endDayOptions = useMemo(() => {
-    if (eventDays.length === 0) return []
-    const lastDay = eventDays[eventDays.length - 1]
-    const nextDay = format(addDays(parseISO(lastDay), 1), 'yyyy-MM-dd')
-    return [...eventDays, nextDay]
-  }, [eventDays])
-
   function getEndDays(row: ShiftRow) {
-    return endDayOptions.filter(d => d >= row.startDay)
+    return eventDays.filter(d => d >= row.startDay)
   }
 
   // Samana päivänä tunnit/minuutit rajoitetaan, eri päivänä kaikki sallittu
