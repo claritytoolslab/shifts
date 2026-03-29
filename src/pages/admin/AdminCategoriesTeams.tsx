@@ -142,7 +142,7 @@ export default function AdminCategoriesTeams() {
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [showLocationForm, setShowLocationForm] = useState(false)
-  const [newLocation, setNewLocation] = useState({ city: '', street: '', number: '' })
+  const [newLocation, setNewLocation] = useState({ name: '', city: '', street: '', number: '' })
   const [error, setError] = useState('')
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -194,12 +194,13 @@ export default function AdminCategoriesTeams() {
       setError('Valitse tapahtuma ensin')
       return
     }
-    if (!newLocation.city.trim() || !newLocation.street.trim() || !newLocation.number.trim()) {
+    if (!newLocation.name.trim() || !newLocation.city.trim() || !newLocation.street.trim() || !newLocation.number.trim()) {
       setError('Täytä kaikki kentät')
       return
     }
     const { error: insertError } = await supabase.from('locations').insert({
       event_id: selectedEventFilter,
+      name: newLocation.name.trim(),
       city: newLocation.city.trim(),
       street: newLocation.street.trim(),
       number: newLocation.number.trim(),
@@ -208,7 +209,7 @@ export default function AdminCategoriesTeams() {
       setError(insertError.message)
       return
     }
-    setNewLocation({ city: '', street: '', number: '' })
+    setNewLocation({ name: '', city: '', street: '', number: '' })
     setShowLocationForm(false)
     fetchAll()
   }
@@ -402,10 +403,13 @@ export default function AdminCategoriesTeams() {
                     .filter(loc => loc.event_id === selectedEventFilter)
                     .map(loc => (
                       <li key={loc.id} className="flex items-center justify-between py-2.5">
-                        <span className="flex-1 text-sm text-gray-700">{loc.city}, {loc.street} {loc.number}</span>
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-gray-800">{loc.name}</span>
+                          <div className="text-xs text-gray-500">{loc.city}, {loc.street} {loc.number}</div>
+                        </div>
                         <button
                           onClick={() => deleteLocation(loc.id)}
-                          className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors shrink-0"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -416,6 +420,13 @@ export default function AdminCategoriesTeams() {
 
               {showLocationForm ? (
                 <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    placeholder="Nimi (esim. Myyrmäen stadion)"
+                    value={newLocation.name}
+                    onChange={e => setNewLocation(prev => ({ ...prev, name: e.target.value }))}
+                    className="input text-sm"
+                  />
                   <input
                     type="text"
                     placeholder="Kaupunki"
@@ -440,7 +451,7 @@ export default function AdminCategoriesTeams() {
                   <div className="flex gap-2">
                     <button
                       onClick={addLocation}
-                      disabled={!newLocation.city.trim() || !newLocation.street.trim() || !newLocation.number.trim()}
+                      disabled={!newLocation.name.trim() || !newLocation.city.trim() || !newLocation.street.trim() || !newLocation.number.trim()}
                       className="btn-primary flex-1 flex items-center justify-center gap-1 text-sm"
                     >
                       <Check size={15} />
@@ -449,7 +460,7 @@ export default function AdminCategoriesTeams() {
                     <button
                       onClick={() => {
                         setShowLocationForm(false)
-                        setNewLocation({ city: '', street: '', number: '' })
+                        setNewLocation({ name: '', city: '', street: '', number: '' })
                         setError('')
                       }}
                       className="btn-secondary flex-1 flex items-center justify-center gap-1 text-sm"

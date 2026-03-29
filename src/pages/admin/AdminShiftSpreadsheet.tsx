@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
-import type { Event, Task, Team, ShiftAvailability } from '../../lib/database.types'
+import type { Event, Task, Team, ShiftAvailability, Location } from '../../lib/database.types'
 import { Plus, Trash2, Save, ArrowLeft, FileText, Filter, Check, X, Maximize2, Minimize2, ArrowUp, ArrowDown } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import { fi } from 'date-fns/locale'
@@ -63,6 +63,7 @@ export default function AdminShiftSpreadsheet() {
   const [event, setEvent] = useState<Event | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [teams, setTeams] = useState<Team[]>([])
+  const [locations, setLocations] = useState<Location[]>([])
   const [rows, setRows] = useState<ShiftRow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -122,19 +123,22 @@ export default function AdminShiftSpreadsheet() {
   }, [eventId])
 
   async function fetchData() {
-    const [eventRes, tasksRes, teamsRes] = await Promise.all([
+    const [eventRes, tasksRes, teamsRes, locRes] = await Promise.all([
       supabase.from('events').select('*').eq('id', eventId!).single(),
       supabase.from('tasks').select('*').eq('event_id', eventId!).order('name'),
       supabase.from('teams').select('*').order('name'),
+      supabase.from('locations').select('*').eq('event_id', eventId!).order('name'),
     ])
 
     const ev = eventRes.data as Event | null
     const taskList = (tasksRes.data as Task[]) ?? []
     const teamList = (teamsRes.data as Team[]) ?? []
+    const locList = (locRes.data as Location[]) ?? []
 
     setEvent(ev)
     setTasks(taskList)
     setTeams(teamList)
+    setLocations(locList)
 
     // Hae kaikki vuorot tapahtuman tehtäville
     if (taskList.length > 0) {
@@ -666,12 +670,18 @@ export default function AdminShiftSpreadsheet() {
 
                   {/* Sijainti */}
                   <td className="px-2 py-1.5">
-                    <input
+                    <select
                       value={row.location}
                       onChange={e => updateRow(row._id, 'location', e.target.value)}
                       className="w-full border border-gray-200 rounded px-1.5 py-1 text-sm focus:border-blue-400 outline-none"
-                      placeholder="Sijainti"
-                    />
+                    >
+                      <option value="">Valitse sijainti</option>
+                      {locations.map(loc => (
+                        <option key={loc.id} value={loc.name}>
+                          {loc.name}
+                        </option>
+                      ))}
+                    </select>
                   </td>
 
                   {/* Lisätiedot */}

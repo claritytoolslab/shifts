@@ -117,6 +117,7 @@ export interface Database {
         Row: {
           id: string
           event_id: string
+          name: string
           city: string
           street: string
           number: string
@@ -125,12 +126,14 @@ export interface Database {
         Insert: {
           id?: string
           event_id: string
+          name: string
           city: string
           street: string
           number: string
           created_at?: string
         }
         Update: {
+          name?: string
           city?: string
           street?: string
           number?: string
