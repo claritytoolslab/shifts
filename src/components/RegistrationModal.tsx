@@ -112,7 +112,8 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       .single()
 
     if (insertError || !insertedReg) {
-      setError('Ilmoittautuminen epäonnistui. Yritä uudelleen.')
+      const errorMsg = insertError?.message || 'Tuntematon virhe'
+      setError(`Ilmoittautuminen epäonnistui: ${errorMsg}`)
       console.error(insertError)
     } else {
       setStep('success')
