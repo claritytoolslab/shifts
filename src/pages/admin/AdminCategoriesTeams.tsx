@@ -369,6 +369,109 @@ export default function AdminCategoriesTeams() {
           />
         </div>
 
+        {/* Sijainnit */}
+        <div className="card mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Sijainnit</h3>
+          <p className="text-xs text-gray-400 mb-4">Tapahtuman sijainnit – tapahtuma-kohtaiset osoitteet</p>
+
+          {/* Tapahtuma-suodatin */}
+          <div className="mb-4">
+            <select
+              value={selectedEventFilter}
+              onChange={e => setSelectedEventFilter(e.target.value)}
+              className="input text-sm py-1.5"
+            >
+              <option value="all">Valitse tapahtuma</option>
+              {events.map(ev => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedEventFilter === 'all' ? (
+            <p className="text-sm text-gray-400 py-4">Valitse tapahtuma ensin.</p>
+          ) : (
+            <>
+              {locations.filter(loc => loc.event_id === selectedEventFilter).length === 0 ? (
+                <p className="text-sm text-gray-400 mb-4">Ei vielä sijainteja.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100 mb-4">
+                  {locations
+                    .filter(loc => loc.event_id === selectedEventFilter)
+                    .map(loc => (
+                      <li key={loc.id} className="flex items-center justify-between py-2.5">
+                        <span className="flex-1 text-sm text-gray-700">{loc.city}, {loc.street} {loc.number}</span>
+                        <button
+                          onClick={() => deleteLocation(loc.id)}
+                          className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              )}
+
+              {showLocationForm ? (
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    placeholder="Kaupunki"
+                    value={newLocation.city}
+                    onChange={e => setNewLocation(prev => ({ ...prev, city: e.target.value }))}
+                    className="input text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Katu"
+                    value={newLocation.street}
+                    onChange={e => setNewLocation(prev => ({ ...prev, street: e.target.value }))}
+                    className="input text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Numero"
+                    value={newLocation.number}
+                    onChange={e => setNewLocation(prev => ({ ...prev, number: e.target.value }))}
+                    className="input text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={addLocation}
+                      disabled={!newLocation.city.trim() || !newLocation.street.trim() || !newLocation.number.trim()}
+                      className="btn-primary flex-1 flex items-center justify-center gap-1 text-sm"
+                    >
+                      <Check size={15} />
+                      Tallenna
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowLocationForm(false)
+                        setNewLocation({ city: '', street: '', number: '' })
+                        setError('')
+                      }}
+                      className="btn-secondary flex-1 flex items-center justify-center gap-1 text-sm"
+                    >
+                      <X size={15} />
+                      Peruuta
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowLocationForm(true)}
+                  className="btn-primary flex items-center gap-1 text-sm px-3 w-full justify-center"
+                >
+                  <Plus size={15} />
+                  Lisää sijainti
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
         {/* Tehtävät */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">

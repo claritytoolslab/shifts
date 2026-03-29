@@ -331,6 +331,7 @@ export type ShiftAvailability = Database['public']['Views']['shift_availability'
 
 export type Category = Database['public']['Tables']['categories']['Row']
 export type Team = Database['public']['Tables']['teams']['Row']
+export type Location = Database['public']['Tables']['locations']['Row']
 
 export type EventInsert = Database['public']['Tables']['events']['Insert']
 export type TaskInsert = Database['public']['Tables']['tasks']['Insert']
