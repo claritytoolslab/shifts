@@ -94,13 +94,23 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       guardian_phone: data.is_under_13 ? data.guardian_phone?.trim() || null : null,
     }
 
-    const { error: insertError } = await supabase.from('registrations').insert(payload)
+    const { data: insertedReg, error: insertError } = await supabase
+      .from('registrations')
+      .insert(payload)
+      .select('id')
+      .single()
 
-    if (insertError) {
+    if (insertError || !insertedReg) {
       setError('Ilmoittautuminen epäonnistui. Yritä uudelleen.')
       console.error(insertError)
     } else {
       setStep('success')
+      // Lähetä vahvistussähköposti (fire-and-forget)
+      fetch('/.netlify/functions/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId: insertedReg.id }),
+      }).catch(() => {})
     }
     setSaving(false)
   }

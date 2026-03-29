@@ -20,6 +20,9 @@ export interface Database {
           is_active: boolean
           privacy_contact: string | null
           privacy_retention: string | null
+          confirmation_email_subject: string | null
+          confirmation_email_body: string | null
+          sender_name: string | null
           created_at: string
           updated_at: string
         }
@@ -33,6 +36,9 @@ export interface Database {
           is_active?: boolean
           privacy_contact?: string | null
           privacy_retention?: string | null
+          confirmation_email_subject?: string | null
+          confirmation_email_body?: string | null
+          sender_name?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -46,6 +52,9 @@ export interface Database {
           is_active?: boolean
           privacy_contact?: string | null
           privacy_retention?: string | null
+          confirmation_email_subject?: string | null
+          confirmation_email_body?: string | null
+          sender_name?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -161,6 +170,46 @@ export interface Database {
         Update: { name?: string }
         Relationships: []
       }
+      email_queue: {
+        Row: {
+          id: string
+          registration_id: string
+          to_email: string
+          subject: string
+          html_body: string
+          status: string
+          error_message: string | null
+          attempts: number
+          created_at: string
+          sent_at: string | null
+        }
+        Insert: {
+          id?: string
+          registration_id: string
+          to_email: string
+          subject: string
+          html_body: string
+          status?: string
+          error_message?: string | null
+          attempts?: number
+          created_at?: string
+          sent_at?: string | null
+        }
+        Update: {
+          status?: string
+          error_message?: string | null
+          attempts?: number
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_queue_registration_id_fkey"
+            columns: ["registration_id"]
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       registrations: {
         Row: {
           id: string
@@ -178,6 +227,7 @@ export interface Database {
           gdpr_accepted: boolean
           is_under_13: boolean
           guardian_phone: string | null
+          cancellation_token: string
           created_at: string
         }
         Insert: {
@@ -249,3 +299,4 @@ export type EventInsert = Database['public']['Tables']['events']['Insert']
 export type TaskInsert = Database['public']['Tables']['tasks']['Insert']
 export type ShiftInsert = Database['public']['Tables']['shifts']['Insert']
 export type RegistrationInsert = Database['public']['Tables']['registrations']['Insert']
+export type EmailQueue = Database['public']['Tables']['email_queue']['Row']
