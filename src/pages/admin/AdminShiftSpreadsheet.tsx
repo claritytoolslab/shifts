@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
 import type { Event, Task, Team, ShiftAvailability } from '../../lib/database.types'
-import { Plus, Trash2, Save, ArrowLeft, FileText, Filter, Check, X, Maximize2, Minimize2 } from 'lucide-react'
+import { Plus, Trash2, Save, ArrowLeft, FileText, Filter, Check, X, Maximize2, Minimize2, ArrowUp, ArrowDown } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import { fi } from 'date-fns/locale'
 
@@ -57,6 +57,20 @@ export default function AdminShiftSpreadsheet() {
   const [loading, setLoading] = useState(true)
 
   const [fullscreen, setFullscreen] = useState(false)
+
+  // Sorttaus
+  type SortKey = 'task' | 'team' | 'start' | 'end' | 'maxParticipants' | 'location' | 'confirmed' | 'noShow'
+  const [sortKey, setSortKey] = useState<SortKey | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
   // Suodatus
   const [filterDay, setFilterDay] = useState('')
@@ -316,16 +330,59 @@ export default function AdminShiftSpreadsheet() {
     setNewItemName('')
   }
 
-  // Suodatetut rivit
+  // Tehtävänimien map sorttausta varten
+  const taskNameMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    tasks.forEach(t => { m[t.id] = t.name })
+    return m
+  }, [tasks])
+
+  // Suodatetut ja sortatut rivit
   const filteredRows = useMemo(() => {
-    return rows.filter(r => {
+    let result = rows.filter(r => {
       if (filterDay && r.startDay !== filterDay) return false
       if (filterTeam === '__general__' && r.teamName !== '') return false
       if (filterTeam && filterTeam !== '__general__' && r.teamName !== filterTeam) return false
       if (filterTask && r.taskId !== filterTask) return false
       return true
     })
-  }, [rows, filterDay, filterTeam, filterTask])
+
+    if (sortKey) {
+      const dir = sortDir === 'asc' ? 1 : -1
+      result = [...result].sort((a, b) => {
+        let cmp = 0
+        switch (sortKey) {
+          case 'task':
+            cmp = (taskNameMap[a.taskId] ?? '').localeCompare(taskNameMap[b.taskId] ?? '')
+            break
+          case 'team':
+            cmp = (a.teamName || 'Yleinen').localeCompare(b.teamName || 'Yleinen')
+            break
+          case 'start':
+            cmp = `${a.startDay}T${a.startHour}:${a.startMinute}`.localeCompare(`${b.startDay}T${b.startHour}:${b.startMinute}`)
+            break
+          case 'end':
+            cmp = `${a.endDay}T${a.endHour}:${a.endMinute}`.localeCompare(`${b.endDay}T${b.endHour}:${b.endMinute}`)
+            break
+          case 'maxParticipants':
+            cmp = Number(a.maxParticipants) - Number(b.maxParticipants)
+            break
+          case 'location':
+            cmp = (a.location || '').localeCompare(b.location || '')
+            break
+          case 'confirmed':
+            cmp = a.confirmedCount - b.confirmedCount
+            break
+          case 'noShow':
+            cmp = Number(a.noShowCount) - Number(b.noShowCount)
+            break
+        }
+        return cmp * dir
+      })
+    }
+
+    return result
+  }, [rows, filterDay, filterTeam, filterTask, sortKey, sortDir, taskNameMap])
 
   if (loading) {
     return (
@@ -415,15 +472,31 @@ export default function AdminShiftSpreadsheet() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-2 py-2 font-semibold text-gray-700 min-w-[160px]">Tehtävä *</th>
-                <th className="text-left px-2 py-2 font-semibold text-gray-700 min-w-[130px]">Joukkue</th>
-                <th className="text-left px-2 py-2 font-semibold text-gray-700 min-w-[200px]">Alku</th>
-                <th className="text-left px-2 py-2 font-semibold text-gray-700 min-w-[200px]">Loppu</th>
-                <th className="text-left px-2 py-2 font-semibold text-gray-700 min-w-[70px]">Paikkoja</th>
-                <th className="text-left px-2 py-2 font-semibold text-gray-700 min-w-[120px]">Sijainti</th>
-                <th className="text-left px-2 py-2 font-semibold text-gray-700 min-w-[120px]">Lisätiedot</th>
-                <th className="text-left px-2 py-2 font-semibold text-gray-700 min-w-[60px]">Ilm.</th>
-                <th className="text-left px-2 py-2 font-semibold text-gray-700 min-w-[60px]">Poissa</th>
+                {([
+                  { key: 'task' as SortKey, label: 'Tehtävä *', minW: '160px' },
+                  { key: 'team' as SortKey, label: 'Joukkue', minW: '130px' },
+                  { key: 'start' as SortKey, label: 'Alku', minW: '200px' },
+                  { key: 'end' as SortKey, label: 'Loppu', minW: '200px' },
+                  { key: 'maxParticipants' as SortKey, label: 'Paikkoja', minW: '70px' },
+                  { key: 'location' as SortKey, label: 'Sijainti', minW: '120px' },
+                  { key: null as SortKey | null, label: 'Lisätiedot', minW: '120px' },
+                  { key: 'confirmed' as SortKey, label: 'Ilm.', minW: '60px' },
+                  { key: 'noShow' as SortKey, label: 'Poissa', minW: '60px' },
+                ] as const).map(({ key, label, minW }) => (
+                  <th
+                    key={label}
+                    className={`text-left px-2 py-2 font-semibold text-gray-700 select-none ${key ? 'cursor-pointer hover:bg-gray-100' : ''}`}
+                    style={{ minWidth: minW }}
+                    onClick={() => key && toggleSort(key)}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {label}
+                      {sortKey === key && (
+                        sortDir === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
+                      )}
+                    </span>
+                  </th>
+                ))}
                 <th className="px-2 py-2 min-w-[80px]"></th>
               </tr>
             </thead>
