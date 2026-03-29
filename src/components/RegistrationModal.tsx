@@ -23,7 +23,6 @@ interface RegistrationForm {
   has_ea1: boolean
   has_ajokortti: boolean
   has_jarjestyksenvalvontakortti: boolean
-  notes: string
   is_under_13: boolean
   guardian_phone: string
   gdpr_accepted: boolean
@@ -97,7 +96,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: data.has_ea1,
       has_ajokortti: data.has_ajokortti,
       has_jarjestyksenvalvontakortti: data.has_jarjestyksenvalvontakortti,
-      notes: data.notes?.trim() || null,
+      notes: null,
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
       is_under_13: data.is_under_13,
@@ -294,15 +293,12 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                 </div>
               </div>
 
-              <div>
-                <label className="label">Lisätietoja</label>
-                <textarea
-                  {...register('notes')}
-                  className="input"
-                  rows={2}
-                  placeholder="Muuta huomioitavaa..."
-                />
-              </div>
+              {shift.notes && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="text-sm font-medium text-blue-900 mb-2">📋 Vuoron lisätiedot</div>
+                  <p className="text-sm text-blue-800">{shift.notes}</p>
+                </div>
+              )}
 
               {/* Alle 13v */}
               <div className="border-t pt-4 space-y-3">
