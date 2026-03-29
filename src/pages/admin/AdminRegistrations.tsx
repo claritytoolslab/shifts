@@ -27,6 +27,9 @@ export default function AdminRegistrations() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [eventFilter, setEventFilter] = useState<string>('all')
+  const [taskFilter, setTaskFilter] = useState<string>('all')
+  const [dateFilter, setDateFilter] = useState<string>('all')
   const [sortKey, setSortKey] = useState<SortKey>('created_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
@@ -56,14 +59,21 @@ export default function AdminRegistrations() {
     setLoading(false)
   }
 
+  const uniqueEvents = [...new Set(registrations.map(r => r.shifts?.tasks?.events?.name).filter(Boolean))] as string[]
+  const uniqueTasks = [...new Set(registrations.map(r => r.shifts?.tasks?.name).filter(Boolean))] as string[]
+  const uniqueDates = [...new Set(registrations.map(r => r.shifts ? format(new Date(r.shifts.start_time), 'dd.MM.yyyy') : null).filter(Boolean))] as string[]
+
   const filtered = registrations.filter(reg => {
     const matchSearch = search === '' || [
       reg.first_name, reg.last_name, reg.email, reg.phone
     ].some(v => v.toLowerCase().includes(search.toLowerCase()))
 
     const matchStatus = statusFilter === 'all' || reg.status === statusFilter
+    const matchEvent = eventFilter === 'all' || reg.shifts?.tasks?.events?.name === eventFilter
+    const matchTask = taskFilter === 'all' || reg.shifts?.tasks?.name === taskFilter
+    const matchDate = dateFilter === 'all' || (reg.shifts && format(new Date(reg.shifts.start_time), 'dd.MM.yyyy') === dateFilter)
 
-    return matchSearch && matchStatus
+    return matchSearch && matchStatus && matchEvent && matchTask && matchDate
   })
 
   function getSortValue(reg: RegistrationWithDetails, key: SortKey): string {
@@ -132,7 +142,7 @@ export default function AdminRegistrations() {
           </button>
         </div>
 
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-4">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -152,6 +162,39 @@ export default function AdminRegistrations() {
             <option value="confirmed">Vahvistettu</option>
             <option value="waitlisted">Jonossa</option>
             <option value="cancelled">Peruutettu</option>
+          </select>
+        </div>
+
+        <div className="flex gap-4 mb-6">
+          <select
+            value={eventFilter}
+            onChange={e => setEventFilter(e.target.value)}
+            className="input w-auto"
+          >
+            <option value="all">Kaikki tapahtumat</option>
+            {uniqueEvents.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          <select
+            value={taskFilter}
+            onChange={e => setTaskFilter(e.target.value)}
+            className="input w-auto"
+          >
+            <option value="all">Kaikki tehtävät</option>
+            {uniqueTasks.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          <select
+            value={dateFilter}
+            onChange={e => setDateFilter(e.target.value)}
+            className="input w-auto"
+          >
+            <option value="all">Kaikki päivät</option>
+            {uniqueDates.map(date => (
+              <option key={date} value={date}>{date}</option>
+            ))}
           </select>
         </div>
 
