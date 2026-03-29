@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
-import type { Category, Team, Task, Event } from '../../lib/database.types'
+import type { Category, Team, Task, Event, Location } from '../../lib/database.types'
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 
 interface TaskFormState {
@@ -137,9 +137,12 @@ function ItemList<T extends { id: string; name: string }>({
 export default function AdminCategoriesTeams() {
   const [categories, setCategories] = useState<Category[]>([])
   const [teams, setTeams] = useState<Team[]>([])
+  const [locations, setLocations] = useState<Location[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
+  const [showLocationForm, setShowLocationForm] = useState(false)
+  const [newLocation, setNewLocation] = useState({ city: '', street: '', number: '' })
   const [error, setError] = useState('')
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -171,17 +174,49 @@ export default function AdminCategoriesTeams() {
   useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
-    const [catRes, teamRes, taskRes, eventRes] = await Promise.all([
+    const [catRes, teamRes, locRes, taskRes, eventRes] = await Promise.all([
       supabase.from('categories').select('*').order('name'),
       supabase.from('teams').select('*').order('name'),
+      supabase.from('locations').select('*').order('city'),
       supabase.from('tasks').select('*').order('name'),
       supabase.from('events').select('id, name, start_date').order('start_date', { ascending: false }),
     ])
     if (catRes.data) setCategories(catRes.data as Category[])
     if (teamRes.data) setTeams(teamRes.data as Team[])
+    if (locRes.data) setLocations(locRes.data as Location[])
     if (taskRes.data) setTasks(taskRes.data as Task[])
     if (eventRes.data) setEvents(eventRes.data as Event[])
     setLoading(false)
+  }
+
+  async function addLocation() {
+    if (!selectedEventFilter || selectedEventFilter === 'all') {
+      setError('Valitse tapahtuma ensin')
+      return
+    }
+    if (!newLocation.city.trim() || !newLocation.street.trim() || !newLocation.number.trim()) {
+      setError('Täytä kaikki kentät')
+      return
+    }
+    const { error: insertError } = await supabase.from('locations').insert({
+      event_id: selectedEventFilter,
+      city: newLocation.city.trim(),
+      street: newLocation.street.trim(),
+      number: newLocation.number.trim(),
+    })
+    if (insertError) {
+      setError(insertError.message)
+      return
+    }
+    setNewLocation({ city: '', street: '', number: '' })
+    setShowLocationForm(false)
+    fetchAll()
+  }
+
+  async function deleteLocation(id: string) {
+    const { error } = await supabase.from('locations').delete().eq('id', id)
+    if (error) setError(error.message)
+    else fetchAll()
   }
 
   // Kategoriat
