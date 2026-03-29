@@ -143,6 +143,7 @@ export default function AdminCategoriesTeams() {
   const [loading, setLoading] = useState(true)
   const [showLocationForm, setShowLocationForm] = useState(false)
   const [newLocation, setNewLocation] = useState({ name: '', city: '', street: '', number: '' })
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null)
   const [error, setError] = useState('')
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -218,6 +219,33 @@ export default function AdminCategoriesTeams() {
     const { error } = await supabase.from('locations').delete().eq('id', id)
     if (error) setError(error.message)
     else fetchAll()
+  }
+
+  function openEditLocation(location: Location) {
+    setEditingLocation(location)
+    setNewLocation({ name: location.name, city: location.city, street: location.street, number: location.number })
+    setShowLocationForm(true)
+  }
+
+  async function saveEditLocation() {
+    if (!newLocation.name.trim() || !newLocation.city.trim() || !newLocation.street.trim() || !newLocation.number.trim()) {
+      setError('Täytä kaikki kentät')
+      return
+    }
+    const { error: updateError } = await supabase.from('locations').update({
+      name: newLocation.name.trim(),
+      city: newLocation.city.trim(),
+      street: newLocation.street.trim(),
+      number: newLocation.number.trim(),
+    }).eq('id', editingLocation!.id)
+    if (updateError) {
+      setError(updateError.message)
+      return
+    }
+    setEditingLocation(null)
+    setNewLocation({ name: '', city: '', street: '', number: '' })
+    setShowLocationForm(false)
+    fetchAll()
   }
 
   // Kategoriat
@@ -407,12 +435,20 @@ export default function AdminCategoriesTeams() {
                           <span className="text-sm font-medium text-gray-800">{loc.name}</span>
                           <div className="text-xs text-gray-500">{loc.city}, {loc.street} {loc.number}</div>
                         </div>
-                        <button
-                          onClick={() => deleteLocation(loc.id)}
-                          className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors shrink-0"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => openEditLocation(loc)}
+                            className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            onClick={() => deleteLocation(loc.id)}
+                            className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </li>
                     ))}
                 </ul>
@@ -450,16 +486,17 @@ export default function AdminCategoriesTeams() {
                   />
                   <div className="flex gap-2">
                     <button
-                      onClick={addLocation}
+                      onClick={editingLocation ? saveEditLocation : addLocation}
                       disabled={!newLocation.name.trim() || !newLocation.city.trim() || !newLocation.street.trim() || !newLocation.number.trim()}
                       className="btn-primary flex-1 flex items-center justify-center gap-1 text-sm"
                     >
                       <Check size={15} />
-                      Tallenna
+                      {editingLocation ? 'Päivitä' : 'Tallenna'}
                     </button>
                     <button
                       onClick={() => {
                         setShowLocationForm(false)
+                        setEditingLocation(null)
                         setNewLocation({ name: '', city: '', street: '', number: '' })
                         setError('')
                       }}
