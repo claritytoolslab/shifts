@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
 import type { Registration } from '../../lib/database.types'
-import { Search, Download } from 'lucide-react'
+import { Search, Download, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { fi } from 'date-fns/locale'
 
@@ -19,11 +19,16 @@ interface RegistrationWithDetails extends Registration {
   }
 }
 
+type SortKey = 'name' | 'event' | 'task' | 'shift' | 'status' | 'created_at'
+type SortDir = 'asc' | 'desc'
+
 export default function AdminRegistrations() {
   const [registrations, setRegistrations] = useState<RegistrationWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [sortKey, setSortKey] = useState<SortKey>('created_at')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   useEffect(() => {
     fetchRegistrations()
@@ -60,6 +65,38 @@ export default function AdminRegistrations() {
 
     return matchSearch && matchStatus
   })
+
+  function getSortValue(reg: RegistrationWithDetails, key: SortKey): string {
+    switch (key) {
+      case 'name': return `${reg.first_name} ${reg.last_name}`.toLowerCase()
+      case 'event': return (reg.shifts?.tasks?.events?.name ?? '').toLowerCase()
+      case 'task': return (reg.shifts?.tasks?.name ?? '').toLowerCase()
+      case 'shift': return reg.shifts?.start_time ?? ''
+      case 'status': return reg.status
+      case 'created_at': return reg.created_at
+    }
+  }
+
+  const sorted = [...filtered].sort((a, b) => {
+    const aVal = getSortValue(a, sortKey)
+    const bVal = getSortValue(b, sortKey)
+    const cmp = aVal.localeCompare(bVal)
+    return sortDir === 'asc' ? cmp : -cmp
+  })
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
+
+  function SortIcon({ column }: { column: SortKey }) {
+    if (sortKey !== column) return <ArrowUpDown size={14} className="text-gray-400" />
+    return sortDir === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+  }
 
   function exportCSV() {
     const headers = ['Nimi', 'Sähköposti', 'Puhelin', 'Tapahtuma', 'Tehtävä', 'Vuoro', 'Status', 'Ilmoittautumisaika']
@@ -132,16 +169,26 @@ export default function AdminRegistrations() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Ilmoittautuja</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Tapahtuma / Tehtävä</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Vuoro</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('name')}>
+                      <span className="inline-flex items-center gap-1">Ilmoittautuja <SortIcon column="name" /></span>
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('event')}>
+                      <span className="inline-flex items-center gap-1">Tapahtuma / Tehtävä <SortIcon column="event" /></span>
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('shift')}>
+                      <span className="inline-flex items-center gap-1">Vuoro <SortIcon column="shift" /></span>
+                    </th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Pätevyydet</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Tila</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Ilmoittautui</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('status')}>
+                      <span className="inline-flex items-center gap-1">Tila <SortIcon column="status" /></span>
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('created_at')}>
+                      <span className="inline-flex items-center gap-1">Ilmoittautui <SortIcon column="created_at" /></span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((reg) => (
+                  {sorted.map((reg) => (
                     <tr key={reg.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{reg.first_name} {reg.last_name}</div>
