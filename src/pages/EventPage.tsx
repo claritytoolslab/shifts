@@ -216,14 +216,17 @@ export default function EventPage() {
                   {task.min_age}v+
                 </span>
               )}
-              {task.requires_drivers_license && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">B-ajokortti</span>
+              {task.requires_pelinohjauskoulutus && (
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Pelinohjauskoulutus</span>
               )}
-              {task.requires_tieturva && (
-                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">Tieturva</span>
+              {task.requires_ea1 && (
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">EA1</span>
               )}
-              {task.requires_hygiene_passport && (
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Hygieniapassi</span>
+              {task.requires_ajokortti && (
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">B-ajokortti + ajolupa</span>
+              )}
+              {task.requires_jarjestyksenvalvontakortti && (
+                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">Järjestyksenvalvontakortti</span>
               )}
               {task.other_requirements && (
                 <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{task.other_requirements}</span>

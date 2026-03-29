@@ -10,9 +10,10 @@ interface TaskFormState {
   description: string
   category: string
   min_age: string
-  requires_drivers_license: boolean
-  requires_tieturva: boolean
-  requires_hygiene_passport: boolean
+  requires_pelinohjauskoulutus: boolean
+  requires_ea1: boolean
+  requires_ajokortti: boolean
+  requires_jarjestyksenvalvontakortti: boolean
   other_requirements: string
 }
 
@@ -153,9 +154,10 @@ export default function AdminCategoriesTeams() {
     description: '',
     category: '',
     min_age: '',
-    requires_drivers_license: false,
-    requires_tieturva: false,
-    requires_hygiene_passport: false,
+    requires_pelinohjauskoulutus: false,
+    requires_ea1: false,
+    requires_ajokortti: false,
+    requires_jarjestyksenvalvontakortti: false,
     other_requirements: '',
   })
 
@@ -233,9 +235,10 @@ export default function AdminCategoriesTeams() {
       description: task.description ?? '',
       category: task.category ?? '',
       min_age: task.min_age != null ? String(task.min_age) : '',
-      requires_drivers_license: task.requires_drivers_license,
-      requires_tieturva: task.requires_tieturva,
-      requires_hygiene_passport: task.requires_hygiene_passport,
+      requires_pelinohjauskoulutus: task.requires_pelinohjauskoulutus,
+      requires_ea1: task.requires_ea1,
+      requires_ajokortti: task.requires_ajokortti,
+      requires_jarjestyksenvalvontakortti: task.requires_jarjestyksenvalvontakortti,
       other_requirements: task.other_requirements ?? '',
     })
     setTaskFormErrors({})
@@ -260,9 +263,10 @@ export default function AdminCategoriesTeams() {
       description: taskForm.description || null,
       category: taskForm.category || null,
       min_age: taskForm.min_age ? Number(taskForm.min_age) : null,
-      requires_drivers_license: taskForm.requires_drivers_license,
-      requires_tieturva: taskForm.requires_tieturva,
-      requires_hygiene_passport: taskForm.requires_hygiene_passport,
+      requires_pelinohjauskoulutus: taskForm.requires_pelinohjauskoulutus,
+      requires_ea1: taskForm.requires_ea1,
+      requires_ajokortti: taskForm.requires_ajokortti,
+      requires_jarjestyksenvalvontakortti: taskForm.requires_jarjestyksenvalvontakortti,
       other_requirements: taskForm.other_requirements || null,
     }
 
@@ -373,9 +377,10 @@ export default function AdminCategoriesTeams() {
                         <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">{task.category}</span>
                       )}
                       {task.min_age && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{task.min_age}v+</span>}
-                      {task.requires_drivers_license && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">B-kortti</span>}
-                      {task.requires_tieturva && <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tieturva</span>}
-                      {task.requires_hygiene_passport && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Hygieniapassi</span>}
+                      {task.requires_pelinohjauskoulutus && <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Pelinohjauskoulutus</span>}
+                      {task.requires_ea1 && <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">EA1</span>}
+                      {task.requires_ajokortti && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">B-kortti+ajolupa</span>}
+                      {task.requires_jarjestyksenvalvontakortti && <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Järjestyksenvalvonta</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -471,29 +476,38 @@ export default function AdminCategoriesTeams() {
                     <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={taskForm.requires_drivers_license}
-                        onChange={e => setTaskField('requires_drivers_license', e.target.checked)}
+                        checked={taskForm.requires_pelinohjauskoulutus}
+                        onChange={e => setTaskField('requires_pelinohjauskoulutus', e.target.checked)}
                         className="w-4 h-4 rounded border-gray-300"
                       />
-                      B-ajokortti
+                      Pelinohjauskoulutus
                     </label>
                     <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={taskForm.requires_tieturva}
-                        onChange={e => setTaskField('requires_tieturva', e.target.checked)}
+                        checked={taskForm.requires_ea1}
+                        onChange={e => setTaskField('requires_ea1', e.target.checked)}
                         className="w-4 h-4 rounded border-gray-300"
                       />
-                      Tieturva 1/2
+                      EA1 (Ensiapu)
                     </label>
                     <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={taskForm.requires_hygiene_passport}
-                        onChange={e => setTaskField('requires_hygiene_passport', e.target.checked)}
+                        checked={taskForm.requires_ajokortti}
+                        onChange={e => setTaskField('requires_ajokortti', e.target.checked)}
                         className="w-4 h-4 rounded border-gray-300"
                       />
-                      Hygieniapassi
+                      B-ajokortti + ajolupa
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={taskForm.requires_jarjestyksenvalvontakortti}
+                        onChange={e => setTaskField('requires_jarjestyksenvalvontakortti', e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                      Järjestyksenvalvontakortti
                     </label>
                   </div>
                 </div>

@@ -22,6 +22,16 @@ function getDaysBetween(start: string, end: string): string[] {
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
 const MINUTES = ['00', '15', '30', '45']
 
+// Hae selaimen aikavyöhykkeen offset muodossa +HH:MM tai -HH:MM
+function getTimezoneOffsetString(): string {
+  const offset = new Date().getTimezoneOffset() // minuuteissa, esim -180 UTC+3:lle
+  const sign = offset <= 0 ? '+' : '-'
+  const absOffset = Math.abs(offset)
+  const hours = String(Math.floor(absOffset / 60)).padStart(2, '0')
+  const mins = String(absOffset % 60).padStart(2, '0')
+  return `${sign}${hours}:${mins}`
+}
+
 type RowStatus = 'saved' | 'dirty' | 'new' | 'saving' | 'error'
 
 interface ShiftRow {
@@ -229,8 +239,9 @@ export default function AdminShiftSpreadsheet() {
       return
     }
 
-    const startTime = `${row.startDay}T${row.startHour}:${row.startMinute}:00`
-    const endTime = `${row.endDay}T${row.endHour}:${row.endMinute}:00`
+    const tzOffset = getTimezoneOffsetString()
+    const startTime = `${row.startDay}T${row.startHour}:${row.startMinute}:00${tzOffset}`
+    const endTime = `${row.endDay}T${row.endHour}:${row.endMinute}:00${tzOffset}`
     if (startTime >= endTime) {
       setRows(prev => prev.map(r => r._id === id ? { ...r, _status: 'error' as RowStatus, _error: 'Loppu ennen alkua' } : r))
       return

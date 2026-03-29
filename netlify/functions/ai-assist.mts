@@ -34,7 +34,7 @@ Tehtävät eivät ole sidottu joukkueeseen – joukkuesidonnan tekee vuorot erik
 Kenttä "category": tehtävän kategoria (voi olla null).
 
 Vastaa täsmälleen tässä JSON-muodossa:
-{"type":"tasks","tasks":[{"name":"Tehtävän nimi","description":"Kuvaus","category":null,"min_age":null,"requires_drivers_license":false,"requires_tieturva":false,"requires_hygiene_passport":false}]}`,
+{"type":"tasks","tasks":[{"name":"Tehtävän nimi","description":"Kuvaus","category":null,"min_age":null,"requires_pelinohjauskoulutus":false,"requires_ea1":false,"requires_ajokortti":false,"requires_jarjestyksenvalvontakortti":false}]}`,
 
   shifts: `Olet avustaja joka luo vapaaehtoistapahtumien hallintajärjestelmään sisältöä.
 Vastaa AINA pelkällä validilla JSON-objektilla ilman muuta tekstiä, selityksiä tai markdown-muotoilua.

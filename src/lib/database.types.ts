@@ -66,9 +66,10 @@ export interface Database {
           name: string
           description: string | null
           min_age: number | null
-          requires_drivers_license: boolean
-          requires_tieturva: boolean
-          requires_hygiene_passport: boolean
+          requires_pelinohjauskoulutus: boolean
+          requires_ea1: boolean
+          requires_ajokortti: boolean
+          requires_jarjestyksenvalvontakortti: boolean
           other_requirements: string | null
           category: string | null
           created_at: string
@@ -80,9 +81,10 @@ export interface Database {
           name: string
           description?: string | null
           min_age?: number | null
-          requires_drivers_license?: boolean
-          requires_tieturva?: boolean
-          requires_hygiene_passport?: boolean
+          requires_pelinohjauskoulutus?: boolean
+          requires_ea1?: boolean
+          requires_ajokortti?: boolean
+          requires_jarjestyksenvalvontakortti?: boolean
           other_requirements?: string | null
           category?: string | null
           created_at?: string
@@ -94,9 +96,10 @@ export interface Database {
           name?: string
           description?: string | null
           min_age?: number | null
-          requires_drivers_license?: boolean
-          requires_tieturva?: boolean
-          requires_hygiene_passport?: boolean
+          requires_pelinohjauskoulutus?: boolean
+          requires_ea1?: boolean
+          requires_ajokortti?: boolean
+          requires_jarjestyksenvalvontakortti?: boolean
           other_requirements?: string | null
           category?: string | null
           updated_at?: string
@@ -219,9 +222,10 @@ export interface Database {
           email: string
           phone: string
           ssn: string
-          has_drivers_license: boolean
-          has_tieturva: boolean
-          has_hygiene_passport: boolean
+          has_pelinohjauskoulutus: boolean
+          has_ea1: boolean
+          has_ajokortti: boolean
+          has_jarjestyksenvalvontakortti: boolean
           notes: string | null
           status: string
           gdpr_accepted: boolean
@@ -238,14 +242,16 @@ export interface Database {
           email: string
           phone: string
           ssn: string
-          has_drivers_license?: boolean
-          has_tieturva?: boolean
-          has_hygiene_passport?: boolean
+          has_pelinohjauskoulutus?: boolean
+          has_ea1?: boolean
+          has_ajokortti?: boolean
+          has_jarjestyksenvalvontakortti?: boolean
           notes?: string | null
           status?: string
           gdpr_accepted?: boolean
           is_under_13?: boolean
           guardian_phone?: string | null
+          cancellation_token?: string
           created_at?: string
         }
         Update: {
