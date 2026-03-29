@@ -258,12 +258,12 @@ export default function AdminShiftSpreadsheet() {
     }
 
     let dbError
-    if (row._status === 'saving' && row._id.startsWith('__new_')) {
+    const isNew = row._id.startsWith('__new_')
+    if (isNew) {
       // Uusi rivi
       const { data, error } = await supabase.from('shifts').insert(payload).select('id').single()
       dbError = error
       if (data && !error) {
-        // Päivitä rivi oikealla id:llä
         setRows(prev => prev.map(r => r._id === id ? { ...r, _id: data.id, _status: 'saved' as RowStatus } : r))
         return
       }
