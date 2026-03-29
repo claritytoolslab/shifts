@@ -48,6 +48,7 @@ interface ShiftRow {
   endMinute: string
   maxParticipants: string
   location: string
+  locationId: string
   notes: string
   noShowCount: string
   confirmedCount: number
@@ -113,6 +114,7 @@ export default function AdminShiftSpreadsheet() {
     endMinute: '00',
     maxParticipants: '5',
     location: '',
+    locationId: '',
     notes: '',
     noShowCount: '0',
     confirmedCount: 0,
@@ -174,6 +176,7 @@ export default function AdminShiftSpreadsheet() {
       endMinute: String(Math.floor(et.getMinutes() / 15) * 15).padStart(2, '0'),
       maxParticipants: String(s.max_participants),
       location: s.location ?? '',
+      locationId: '',
       notes: s.notes ?? '',
       noShowCount: String(s.no_show_count ?? 0),
       confirmedCount: s.confirmed_count,
@@ -260,6 +263,7 @@ export default function AdminShiftSpreadsheet() {
       end_time: endTime,
       max_participants: Number(row.maxParticipants),
       location: row.location || null,
+      location_id: row.locationId || null,
       notes: row.notes || null,
       no_show_count: Number(row.noShowCount) || 0,
     }
@@ -672,7 +676,13 @@ export default function AdminShiftSpreadsheet() {
                   <td className="px-2 py-1.5">
                     <select
                       value={row.location}
-                      onChange={e => updateRow(row._id, 'location', e.target.value)}
+                      onChange={e => {
+                        const locName = e.target.value
+                        updateRow(row._id, 'location', locName)
+                        const loc = locations.find(l => l.name === locName)
+                        if (loc) updateRow(row._id, 'locationId', loc.id)
+                        else updateRow(row._id, 'locationId', '')
+                      }}
                       className="w-full border border-gray-200 rounded px-1.5 py-1 text-sm focus:border-blue-400 outline-none"
                     >
                       <option value="">Valitse sijainti</option>

@@ -156,6 +156,7 @@ export interface Database {
           end_time: string
           max_participants: number
           location: string | null
+          location_id: string | null
           notes: string | null
           no_show_count: number
           created_at: string
@@ -169,6 +170,7 @@ export interface Database {
           end_time: string
           max_participants: number
           location?: string | null
+          location_id?: string | null
           notes?: string | null
           no_show_count?: number
           created_at?: string
@@ -182,6 +184,7 @@ export interface Database {
           end_time?: string
           max_participants?: number
           location?: string | null
+          location_id?: string | null
           notes?: string | null
           no_show_count?: number
           updated_at?: string

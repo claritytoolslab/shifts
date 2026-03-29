@@ -37,12 +37,17 @@ function buildDefaultHtml(data: {
   shiftStart: string
   shiftEnd: string
   location: string | null
+  locationAddress?: string | null
   cancelUrl: string
   customMessage: string | null
 }): string {
-  const locationRow = data.location
-    ? `<tr><td style="padding:6px 0;color:#666;">Sijainti</td><td style="padding:6px 0;font-weight:600;">${data.location}</td></tr>`
-    : ''
+  let locationRow = ''
+  if (data.location) {
+    locationRow = `<tr><td style="padding:6px 0;color:#666;">Sijainti</td><td style="padding:6px 0;font-weight:600;">${data.location}</td></tr>`
+    if (data.locationAddress) {
+      locationRow += `<tr><td style="padding:6px 0;color:#666;"></td><td style="padding:6px 0;color:#999;font-size:13px;">${data.locationAddress}</td></tr>`
+    }
+  }
 
   const customSection = data.customMessage
     ? `<div style="margin:24px 0;padding:16px;background:#f0f9ff;border-radius:8px;">${data.customMessage}</div>`
@@ -149,6 +154,19 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    // Hae sijainnin täydellinen osoite jos location_id on asetettu
+    let locationAddress: string | null = null
+    if (shift.location_id) {
+      const { data: locationData } = await supabase
+        .from('locations')
+        .select('*')
+        .eq('id', shift.location_id)
+        .single()
+      if (locationData) {
+        locationAddress = `${locationData.city}, ${locationData.street} ${locationData.number}`
+      }
+    }
+
     const cancelUrl = `${siteUrl}/.netlify/functions/cancel-registration?token=${reg.cancellation_token}`
     const senderName = eventData.sender_name || 'Varauslista'
     const subject = eventData.confirmation_email_subject || `Ilmoittautumisesi on vahvistettu – ${eventData.name}`
@@ -160,6 +178,7 @@ export const handler: Handler = async (event) => {
       shiftStart: formatDate(shift.start_time),
       shiftEnd: formatDate(shift.end_time),
       location: shift.location,
+      locationAddress,
       cancelUrl,
       customMessage: eventData.confirmation_email_body,
     })
