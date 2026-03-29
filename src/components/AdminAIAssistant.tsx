@@ -29,9 +29,10 @@ interface TaskDraft {
   description: string | null
   category: string | null
   min_age: number | null
-  requires_drivers_license: boolean
-  requires_tieturva: boolean
-  requires_hygiene_passport: boolean
+  requires_pelinohjauskoulutus: boolean
+  requires_ea1: boolean
+  requires_ajokortti: boolean
+  requires_jarjestyksenvalvontakortti: boolean
 }
 
 interface TasksResult {
@@ -301,19 +302,28 @@ export default function AdminAIAssistant({ context, onSaved, inline = false, eve
             description: t.description || null,
             category: t.category || null,
             min_age: t.min_age || null,
-            requires_drivers_license: t.requires_drivers_license ?? false,
-            requires_tieturva: t.requires_tieturva ?? false,
-            requires_hygiene_passport: t.requires_hygiene_passport ?? false,
+            requires_pelinohjauskoulutus: t.requires_pelinohjauskoulutus ?? false,
+            requires_ea1: t.requires_ea1 ?? false,
+            requires_ajokortti: t.requires_ajokortti ?? false,
+            requires_jarjestyksenvalvontakortti: t.requires_jarjestyksenvalvontakortti ?? false,
           })))
       } else if (msg.result.type === 'shifts') {
         const targetTaskId = selectedTaskId || taskId
         if (!targetTaskId) throw new Error('Valitse tehtävä ensin')
+        // Hae selaimen aikavyöhykkeen offset
+        const offset = new Date().getTimezoneOffset()
+        const sign = offset <= 0 ? '+' : '-'
+        const absOffset = Math.abs(offset)
+        const hours = String(Math.floor(absOffset / 60)).padStart(2, '0')
+        const mins = String(absOffset % 60).padStart(2, '0')
+        const tzOffset = `${sign}${hours}:${mins}`
+
         const shs = msg.result.shifts.filter((_, i) => msg.selectedShifts?.has(i))
         if (shs.length > 0)
           await supabase.from('shifts').insert(shs.map(s => ({
             task_id: targetTaskId,
-            start_time: s.start_time,
-            end_time: s.end_time,
+            start_time: `${s.start_time}${tzOffset}`,
+            end_time: `${s.end_time}${tzOffset}`,
             max_participants: s.max_participants,
             location: s.location || null,
             notes: s.notes || null,

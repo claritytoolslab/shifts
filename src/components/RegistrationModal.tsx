@@ -19,9 +19,10 @@ interface RegistrationForm {
   last_name: string
   email: string
   phone: string
-  has_drivers_license: boolean
-  has_tieturva: boolean
-  has_hygiene_passport: boolean
+  has_pelinohjauskoulutus: boolean
+  has_ea1: boolean
+  has_ajokortti: boolean
+  has_jarjestyksenvalvontakortti: boolean
   notes: string
   is_under_13: boolean
   guardian_phone: string
@@ -41,9 +42,10 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
     formState: { errors },
   } = useForm<RegistrationForm>({
     defaultValues: {
-      has_drivers_license: false,
-      has_tieturva: false,
-      has_hygiene_passport: false,
+      has_pelinohjauskoulutus: false,
+      has_ea1: false,
+      has_ajokortti: false,
+      has_jarjestyksenvalvontakortti: false,
       is_under_13: false,
       gdpr_accepted: false,
     }
@@ -52,27 +54,34 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
   const isUnder13 = watch('is_under_13')
 
   const hasRequirements =
-    task.requires_drivers_license ||
-    task.requires_tieturva ||
-    task.requires_hygiene_passport
+    task.requires_pelinohjauskoulutus ||
+    task.requires_ea1 ||
+    task.requires_ajokortti ||
+    task.requires_jarjestyksenvalvontakortti ||
+    !!task.other_requirements
 
   async function onSubmit(data: RegistrationForm) {
     setSaving(true)
     setError('')
 
     // Tarkista pätevyydet
-    if (task.requires_drivers_license && !data.has_drivers_license) {
-      setError('Tämä tehtävä vaatii B-ajokortin.')
+    if (task.requires_pelinohjauskoulutus && !data.has_pelinohjauskoulutus) {
+      setError('Tämä tehtävä vaatii Pelinohjauskoulutus-todistuksen.')
       setSaving(false)
       return
     }
-    if (task.requires_tieturva && !data.has_tieturva) {
-      setError('Tämä tehtävä vaatii Tieturva-kortin.')
+    if (task.requires_ea1 && !data.has_ea1) {
+      setError('Tämä tehtävä vaatii EA1-ensiapukoulutuksen.')
       setSaving(false)
       return
     }
-    if (task.requires_hygiene_passport && !data.has_hygiene_passport) {
-      setError('Tämä tehtävä vaatii hygieniapassin.')
+    if (task.requires_ajokortti && !data.has_ajokortti) {
+      setError('Tämä tehtävä vaatii B-ajokortin ja ajoluvan.')
+      setSaving(false)
+      return
+    }
+    if (task.requires_jarjestyksenvalvontakortti && !data.has_jarjestyksenvalvontakortti) {
+      setError('Tämä tehtävä vaatii järjestyksenvalvontakortin.')
       setSaving(false)
       return
     }
@@ -84,14 +93,16 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       email: data.email.trim().toLowerCase(),
       phone: data.phone.trim(),
       ssn: '',
-      has_drivers_license: data.has_drivers_license,
-      has_tieturva: data.has_tieturva,
-      has_hygiene_passport: data.has_hygiene_passport,
+      has_pelinohjauskoulutus: data.has_pelinohjauskoulutus,
+      has_ea1: data.has_ea1,
+      has_ajokortti: data.has_ajokortti,
+      has_jarjestyksenvalvontakortti: data.has_jarjestyksenvalvontakortti,
       notes: data.notes?.trim() || null,
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
       is_under_13: data.is_under_13,
       guardian_phone: data.is_under_13 ? data.guardian_phone?.trim() || null : null,
+      cancellation_token: crypto.randomUUID(),
     }
 
     const { data: insertedReg, error: insertError } = await supabase
@@ -176,9 +187,10 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                     Tehtävä vaatii pätevyyksiä
                   </div>
                   <ul className="text-sm text-amber-600 space-y-1">
-                    {task.requires_drivers_license && <li>• B-ajokortti</li>}
-                    {task.requires_tieturva && <li>• Tieturva 1/2</li>}
-                    {task.requires_hygiene_passport && <li>• Hygieniapassi</li>}
+                    {task.requires_pelinohjauskoulutus && <li>• Pelinohjauskoulutus</li>}
+                    {task.requires_ea1 && <li>• EA1 (Ensiapu)</li>}
+                    {task.requires_ajokortti && <li>• B-ajokortti + ajolupa</li>}
+                    {task.requires_jarjestyksenvalvontakortti && <li>• Järjestyksenvalvontakortti</li>}
                     {task.other_requirements && <li>• {task.other_requirements}</li>}
                   </ul>
                 </div>
@@ -237,34 +249,45 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"
-                      {...register('has_drivers_license')}
+                      {...register('has_pelinohjauskoulutus')}
                       className="w-4 h-4 rounded border-gray-300"
                     />
-                    <span>B-ajokortti</span>
-                    {task.requires_drivers_license && (
+                    <span>Pelinohjauskoulutus</span>
+                    {task.requires_pelinohjauskoulutus && (
+                      <span className="text-xs bg-purple-100 text-purple-700 px-1.5 rounded">Vaaditaan</span>
+                    )}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      {...register('has_ea1')}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <span>EA1 (Ensiapu)</span>
+                    {task.requires_ea1 && (
+                      <span className="text-xs bg-red-100 text-red-700 px-1.5 rounded">Vaaditaan</span>
+                    )}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      {...register('has_ajokortti')}
+                      className="w-4 h-4 rounded border-gray-300"
+                    />
+                    <span>B-ajokortti + ajolupa</span>
+                    {task.requires_ajokortti && (
                       <span className="text-xs bg-blue-100 text-blue-700 px-1.5 rounded">Vaaditaan</span>
                     )}
                   </label>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"
-                      {...register('has_tieturva')}
+                      {...register('has_jarjestyksenvalvontakortti')}
                       className="w-4 h-4 rounded border-gray-300"
                     />
-                    <span>Tieturva 1/2</span>
-                    {task.requires_tieturva && (
+                    <span>Järjestyksenvalvontakortti</span>
+                    {task.requires_jarjestyksenvalvontakortti && (
                       <span className="text-xs bg-orange-100 text-orange-700 px-1.5 rounded">Vaaditaan</span>
-                    )}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      {...register('has_hygiene_passport')}
-                      className="w-4 h-4 rounded border-gray-300"
-                    />
-                    <span>Hygieniapassi</span>
-                    {task.requires_hygiene_passport && (
-                      <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded">Vaaditaan</span>
                     )}
                   </label>
                 </div>

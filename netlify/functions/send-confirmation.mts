@@ -11,12 +11,23 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr)
-  const day = d.getDate()
-  const month = d.getMonth() + 1
-  const year = d.getFullYear()
-  const hours = d.getHours().toString().padStart(2, '0')
-  const mins = d.getMinutes().toString().padStart(2, '0')
-  return `${day}.${month}.${year} klo ${hours}:${mins}`
+  // Muotoile Europe/Helsinki aikavyöhykkeessä, jotta aika näytetään oikein riippumatta palvelimen aikavyöhykkeestä
+  const formatter = new Intl.DateTimeFormat('fi-FI', {
+    timeZone: 'Europe/Helsinki',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  })
+  const parts = formatter.formatToParts(d)
+  const year = parts.find(p => p.type === 'year')?.value
+  const month = parts.find(p => p.type === 'month')?.value
+  const day = parts.find(p => p.type === 'day')?.value
+  const hour = parts.find(p => p.type === 'hour')?.value
+  const minute = parts.find(p => p.type === 'minute')?.value
+  return `${day}.${month}.${year} klo ${hour}:${minute}`
 }
 
 function buildDefaultHtml(data: {
@@ -138,7 +149,7 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    const cancelUrl = `${siteUrl}/cancel/${reg.cancellation_token}`
+    const cancelUrl = `${siteUrl}/.netlify/functions/cancel-registration?token=${reg.cancellation_token}`
     const senderName = eventData.sender_name || 'Varauslista'
     const subject = eventData.confirmation_email_subject || `Ilmoittautumisesi on vahvistettu – ${eventData.name}`
 

@@ -255,16 +255,19 @@ export default function AdminRegistrations() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
-                          {reg.has_drivers_license && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">B-kortti</span>
+                          {reg.has_pelinohjauskoulutus && (
+                            <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Pelinohjauskoulutus</span>
                           )}
-                          {reg.has_tieturva && (
-                            <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tieturva</span>
+                          {reg.has_ea1 && (
+                            <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">EA1</span>
                           )}
-                          {reg.has_hygiene_passport && (
-                            <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Hygieniapassi</span>
+                          {reg.has_ajokortti && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">B-kortti+ajolupa</span>
                           )}
-                          {!reg.has_drivers_license && !reg.has_tieturva && !reg.has_hygiene_passport && (
+                          {reg.has_jarjestyksenvalvontakortti && (
+                            <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Järjestyksenvalvonta</span>
+                          )}
+                          {!reg.has_pelinohjauskoulutus && !reg.has_ea1 && !reg.has_ajokortti && !reg.has_jarjestyksenvalvontakortti && (
                             <span className="text-gray-400">–</span>
                           )}
                         </div>
