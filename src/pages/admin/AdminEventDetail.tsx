@@ -123,24 +123,77 @@ export default function AdminEventDetail() {
   }
 
   function htmlToText(html: string): string {
-    // Yksinkertainen konversio HTML:stä tekstiin
+    // Konvertoi HTML tekstiin säilyttäen lista-tyypit
     let text = html
-      .replace(/<ol[^>]*>/g, '')
-      .replace(/<\/ol>/g, '')
-      .replace(/<ul[^>]*>/g, '')
-      .replace(/<\/ul>/g, '')
-      .replace(/<li[^>]*>/g, '- ')
-      .replace(/<\/li>/g, '')
+
+    // Käsittele ordered lists (<ol>) numeroituna
+    text = text.replace(/<ol[^>]*>/g, '___OL_START___')
+    text = text.replace(/<\/ol>/g, '___OL_END___')
+
+    // Käsittele unordered lists (<ul>)
+    text = text.replace(/<ul[^>]*>/g, '___UL_START___')
+    text = text.replace(/<\/ul>/g, '___UL_END___')
+
+    // Käsittele list items
+    text = text.replace(/<li[^>]*>/g, '___LI_START___')
+    text = text.replace(/<\/li>/g, '___LI_END___')
+
+    // Käsittele muut tagit
+    text = text
       .replace(/<p[^>]*>/g, '')
       .replace(/<\/p>/g, '\n')
       .replace(/<h3[^>]*>/g, '')
       .replace(/<\/h3>/g, '\n')
       .replace(/<br\s*\/?>/g, '\n')
       .replace(/<[^>]+>/g, '')
+
+    // Entiteetit
+    text = text
       .replace(/&quot;/g, '"')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
+
+    // Käsittele lista-markkerit
+    let liCounter = 0
+    let isOrdered = false
+
+    // Korvaa OL/UL merkit ja numeroi listaa
+    text = text.split('\n').map(line => {
+      if (line.includes('___OL_START___')) {
+        isOrdered = true
+        liCounter = 0
+        return ''
+      }
+      if (line.includes('___OL_END___')) {
+        isOrdered = false
+        return ''
+      }
+      if (line.includes('___UL_START___')) {
+        isOrdered = false
+        liCounter = 0
+        return ''
+      }
+      if (line.includes('___UL_END___')) {
+        return ''
+      }
+      if (line.includes('___LI_START___') && line.includes('___LI_END___')) {
+        let item = line
+          .replace('___LI_START___', '')
+          .replace('___LI_END___', '')
+          .trim()
+
+        if (isOrdered) {
+          liCounter++
+          return `${liCounter}. ${item}`
+        } else {
+          return `- ${item}`
+        }
+      }
+      return line
+    }).filter(line => line !== '' && !line.includes('___'))
+      .join('\n')
+
     return text.trim()
   }
 
