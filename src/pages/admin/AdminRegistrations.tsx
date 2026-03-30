@@ -10,6 +10,7 @@ interface RegistrationWithDetails extends Registration {
   shifts: {
     start_time: string
     end_time: string
+    location: string | null
     tasks: {
       name: string
       events: {
@@ -45,6 +46,7 @@ export default function AdminRegistrations() {
         shifts (
           start_time,
           end_time,
+          location,
           tasks (
             name,
             events (
@@ -221,6 +223,7 @@ export default function AdminRegistrations() {
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('shift')}>
                       <span className="inline-flex items-center gap-1">Vuoro <SortIcon column="shift" /></span>
                     </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">Sijainti</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Pätevyydet</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('status')}>
                       <span className="inline-flex items-center gap-1">Tila <SortIcon column="status" /></span>
@@ -252,6 +255,9 @@ export default function AdminRegistrations() {
                             </div>
                           </>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {reg.shifts?.location || '–'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
