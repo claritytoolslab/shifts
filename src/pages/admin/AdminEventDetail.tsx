@@ -306,16 +306,28 @@ export default function AdminEventDetail() {
                 <label className="label">Mukautettu viesti (HTML)</label>
                 <textarea
                   className="input font-mono text-sm"
-                  rows={8}
+                  rows={10}
                   value={emailBody}
                   onChange={e => setEmailBody(e.target.value)}
-                  placeholder="Tervetuloa vapaaehtoiseksi! Muistathan täyttää myös paidan koko -kyselyn: <a href='https://...'>Linkki kyselyyn</a>"
+                  placeholder={`<h3 style="margin: 0 0 12px 0; font-size: 16px; color: #333;">Muistilista:</h3>
+<ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">
+  <li>Saavu 15 min ennen vuoron alkua</li>
+  <li>Ota mukaan vedenpullo ja energiabaari</li>
+  <li>Käytä mukavaa ja liikuntakelpoista vaatetta</li>
+</ul>
+
+<p style="margin: 16px 0 0 0; font-size: 14px; color: #666;">Kysymyksiä? Ota yhteyttä järjestäjiin.</p>`}
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  Tämä viesti näytetään sähköpostissa vuorotietojen alla. Voit käyttää HTML-linkkejä:
-                  {' '}<code className="bg-gray-100 px-1 rounded">&lt;a href="..."&gt;teksti&lt;/a&gt;</code>.
-                  Vuoron tiedot ja peruutuslinkki lisätään automaattisesti.
+                <p className="text-xs text-gray-400 mt-2">
+                  Näytetään sähköpostissa vuorotietojen alla. Käytettävissä olevat HTML-elementit:
                 </p>
+                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">&lt;h3&gt;Otsikko&lt;/h3&gt;</code> – otsikko</p>
+                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">&lt;ul&gt;&lt;li&gt;kohta&lt;/li&gt;&lt;/ul&gt;</code> – luettelo</p>
+                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">&lt;p&gt;teksti&lt;/p&gt;</code> – kappale</p>
+                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">&lt;a href="url"&gt;linkki&lt;/a&gt;</code> – linkki</p>
+                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">style="..."</code> – värit, marginaalit, koot</p>
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button
