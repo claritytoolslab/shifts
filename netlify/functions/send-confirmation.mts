@@ -72,12 +72,12 @@ function buildDefaultHtml(data: {
         ${locationRow}
       </table>
 
-      ${customSection}
-
-      <div style="margin:32px 0;padding:16px;background:#fef3c7;border-radius:8px;text-align:center;">
+      <div style="margin:24px 0;padding:16px;background:#fef3c7;border-radius:8px;text-align:center;">
         <p style="margin:0 0 8px;font-size:14px;color:#92400e;">Jos et pääse paikalle, peruuta ilmoittautumisesi:</p>
         <a href="${data.cancelUrl}" style="display:inline-block;padding:10px 24px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">Peruuta ilmoittautuminen</a>
       </div>
+
+      ${customSection}
 
       <p style="margin:24px 0 0;font-size:13px;color:#999;">Tämä viesti on lähetetty automaattisesti. Älä vastaa tähän viestiin.</p>
     </div>
