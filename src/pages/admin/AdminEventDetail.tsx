@@ -64,30 +64,49 @@ export default function AdminEventDetail() {
     const lines = text.split('\n')
     let html = ''
     let inList = false
+    let listType: 'ul' | 'ol' = 'ul'
     let listItems: string[] = []
 
     lines.forEach((line) => {
       const trimmed = line.trim()
+      const ulMatch = trimmed.match(/^- (.+)$/)
+      const olMatch = trimmed.match(/^\d+\.\s+(.+)$/)
 
-      if (trimmed.startsWith('-')) {
-        // Lista-rivi
-        if (!inList) {
+      if (ulMatch) {
+        // Ranskalainen viiva -lista
+        if (!inList || listType !== 'ul') {
+          // Lopeta vanha lista jos käynnissä
+          if (inList && listItems.length > 0) {
+            html += `<${listType} style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</${listType}>\n\n`
+          }
           inList = true
+          listType = 'ul'
           listItems = []
         }
-        const item = trimmed.slice(1).trim()
-        listItems.push(`  <li>${item}</li>`)
+        listItems.push(`  <li>${ulMatch[1]}</li>`)
+      } else if (olMatch) {
+        // Numeroitu lista
+        if (!inList || listType !== 'ol') {
+          // Lopeta vanha lista jos käynnissä
+          if (inList && listItems.length > 0) {
+            html += `<${listType} style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</${listType}>\n\n`
+          }
+          inList = true
+          listType = 'ol'
+          listItems = []
+        }
+        listItems.push(`  <li>${olMatch[1]}</li>`)
       } else if (trimmed === '') {
         // Tyhjä rivi - lopeta lista jos käynnissä
         if (inList) {
-          html += `<ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</ul>\n\n`
+          html += `<${listType} style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</${listType}>\n\n`
           inList = false
           listItems = []
         }
       } else {
         // Tavallinen rivi
         if (inList) {
-          html += `<ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</ul>\n\n`
+          html += `<${listType} style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</${listType}>\n\n`
           inList = false
           listItems = []
         }
@@ -97,7 +116,7 @@ export default function AdminEventDetail() {
 
     // Lopeta lista jos vielä käynnissä
     if (inList && listItems.length > 0) {
-      html += `<ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</ul>`
+      html += `<${listType} style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</${listType}>`
     }
 
     return html.trim()
@@ -106,6 +125,8 @@ export default function AdminEventDetail() {
   function htmlToText(html: string): string {
     // Yksinkertainen konversio HTML:stä tekstiin
     let text = html
+      .replace(/<ol[^>]*>/g, '')
+      .replace(/<\/ol>/g, '')
       .replace(/<ul[^>]*>/g, '')
       .replace(/<\/ul>/g, '')
       .replace(/<li[^>]*>/g, '- ')
@@ -414,15 +435,20 @@ export default function AdminEventDetail() {
                       rows={10}
                       value={emailBodyText}
                       onChange={e => handleEmailTextChange(e.target.value)}
-                      placeholder={`Muistilista:
-- Saavu 15 min ennen vuoron alkua
-- Ota mukaan vedenpullo ja energiabaari
-- Käytä mukavaa ja liikuntakelpoista vaatetta
+                      placeholder={`Valmistautuminen:
+1. Saavu 15 min ennen alkua
+2. Tarkista paikoituspaikka etukäteen
+3. Ota mukaan vedenpullo
 
-Kysymyksiä? Ota yhteyttä järjestäjiin.`}
+Mitä ottaa:
+- Mukava vaate
+- Energiabaari
+- Aurinkovoide
+
+Kysymyksiä? Ota yhteyttä.`}
                     />
                     <p className="text-xs text-gray-400 mt-2">
-                      Kirjoita normaalia tekstiä. Rivit jotka alkavat "-" tulevat listaksi. Tyhjä rivi erottaa kappaleet.
+                      Rivit jotka alkavat "- " tulevat luetteloksi. Rivit jotka alkavat "1. ", "2. " jne. tulevat numeroituiksi. Tyhjä rivi erottaa kappaleet.
                     </p>
                   </>
                 ) : (
