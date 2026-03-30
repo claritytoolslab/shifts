@@ -71,7 +71,7 @@ CREATE INDEX idx_registrations_shift_id ON registrations(shift_id);
 CREATE INDEX idx_events_is_active ON events(is_active);
 
 -- Näkymä: vuoro täyttöaste (sisältää team_name)
-CREATE VIEW shift_availability AS
+CREATE OR REPLACE VIEW shift_availability AS
 SELECT
   s.id AS shift_id,
   s.task_id,
@@ -82,6 +82,8 @@ SELECT
   s.location,
   s.notes,
   COUNT(r.id) FILTER (WHERE r.status = 'confirmed') AS confirmed_count,
+  COUNT(r.id) FILTER (WHERE r.status = 'confirmed' AND r.is_present = true) AS present_count,
+  COUNT(r.id) FILTER (WHERE r.status = 'confirmed' AND r.is_present = false) AS no_show_count,
   s.max_participants - COUNT(r.id) FILTER (WHERE r.status = 'confirmed') AS available_spots
 FROM shifts s
 LEFT JOIN registrations r ON r.shift_id = s.id
