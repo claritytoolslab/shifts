@@ -50,7 +50,6 @@ interface ShiftRow {
   location: string
   locationId: string
   notes: string
-  noShowCount: string
   confirmedCount: number
 }
 
@@ -71,7 +70,7 @@ export default function AdminShiftSpreadsheet() {
   const [fullscreen, setFullscreen] = useState(false)
 
   // Sorttaus
-  type SortKey = 'task' | 'team' | 'start' | 'end' | 'maxParticipants' | 'location' | 'confirmed' | 'noShow'
+  type SortKey = 'task' | 'team' | 'start' | 'end' | 'maxParticipants' | 'location' | 'confirmed'
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
@@ -116,7 +115,6 @@ export default function AdminShiftSpreadsheet() {
     location: '',
     locationId: '',
     notes: '',
-    noShowCount: '0',
     confirmedCount: 0,
   }), [tasks, eventDays])
 
@@ -178,7 +176,6 @@ export default function AdminShiftSpreadsheet() {
       location: s.location ?? '',
       locationId: '',
       notes: s.notes ?? '',
-      noShowCount: String(s.no_show_count ?? 0),
       confirmedCount: s.confirmed_count,
     }
   }
@@ -265,7 +262,6 @@ export default function AdminShiftSpreadsheet() {
       location: row.location || null,
       location_id: row.locationId || null,
       notes: row.notes || null,
-      no_show_count: Number(row.noShowCount) || 0,
     }
 
     let dbError
@@ -384,9 +380,6 @@ export default function AdminShiftSpreadsheet() {
           case 'confirmed':
             cmp = a.confirmedCount - b.confirmedCount
             break
-          case 'noShow':
-            cmp = Number(a.noShowCount) - Number(b.noShowCount)
-            break
         }
         return cmp * dir
       })
@@ -492,7 +485,6 @@ export default function AdminShiftSpreadsheet() {
                   { key: 'location' as SortKey, label: 'Sijainti', minW: '120px' },
                   { key: null as SortKey | null, label: 'Lisätiedot', minW: '120px' },
                   { key: 'confirmed' as SortKey, label: 'Ilm.', minW: '60px' },
-                  { key: 'noShow' as SortKey, label: 'Poissa', minW: '60px' },
                 ] as const).map(({ key, label, minW }) => (
                   <th
                     key={label}
@@ -711,18 +703,6 @@ export default function AdminShiftSpreadsheet() {
                     }`}>
                       {row._id.startsWith('__new_') ? '–' : `${row.confirmedCount}/${row.maxParticipants}`}
                     </span>
-                  </td>
-
-                  {/* Poissa */}
-                  <td className="px-2 py-1.5">
-                    <input
-                      type="number"
-                      min={0}
-                      max={row.confirmedCount}
-                      value={row.noShowCount}
-                      onChange={e => updateRow(row._id, 'noShowCount', e.target.value)}
-                      className="w-14 border border-gray-200 rounded px-1.5 py-1 text-sm focus:border-blue-400 outline-none"
-                    />
                   </td>
 
                   {/* Toiminnot */}

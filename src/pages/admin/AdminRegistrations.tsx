@@ -108,8 +108,48 @@ export default function AdminRegistrations() {
     return sortDir === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
   }
 
+  async function handleTogglePresent(registrationId: string) {
+    const reg = registrations.find(r => r.id === registrationId)
+    if (!reg) return
+
+    const newIsPresent = !reg.is_present
+    setRegistrations(prev =>
+      prev.map(r => r.id === registrationId ? { ...r, is_present: newIsPresent } : r)
+    )
+
+    const { error } = await supabase
+      .from('registrations')
+      .update({ is_present: newIsPresent })
+      .eq('id', registrationId)
+
+    if (error) {
+      setRegistrations(prev =>
+        prev.map(r => r.id === registrationId ? { ...r, is_present: reg.is_present } : r)
+      )
+      alert(`Virhe: ${error.message}`)
+    }
+  }
+
+  async function handleDelete(registrationId: string, personName: string) {
+    if (!confirm(`Poista ${personName} ilmoittautumisesta? Tätä ei voi perua.`)) {
+      return
+    }
+
+    setRegistrations(prev => prev.filter(r => r.id !== registrationId))
+
+    const { error } = await supabase
+      .from('registrations')
+      .delete()
+      .eq('id', registrationId)
+
+    if (error) {
+      fetchRegistrations()
+      alert(`Virhe poistettaessa: ${error.message}`)
+    }
+  }
+
   function exportCSV() {
-    const headers = ['Nimi', 'Sähköposti', 'Puhelin', 'Tapahtuma', 'Tehtävä', 'Vuoro', 'Status', 'Ilmoittautumisaika']
+    const headers = ['Nimi', 'Sähköposti', 'Puhelin', 'Tapahtuma', 'Tehtävä', 'Vuoro', 'Status', 'Läsnä', 'Ilmoittautumisaika']
     const rows = filtered.map(reg => [
       `${reg.first_name} ${reg.last_name}`,
       reg.email,
@@ -118,6 +158,7 @@ export default function AdminRegistrations() {
       reg.shifts?.tasks?.name ?? '',
       reg.shifts ? `${format(new Date(reg.shifts.start_time), 'dd.MM.yyyy HH:mm')} - ${format(new Date(reg.shifts.end_time), 'HH:mm')}` : '',
       reg.status,
+      reg.is_present ? 'Kyllä' : 'Ei',
       format(new Date(reg.created_at), 'dd.MM.yyyy HH:mm'),
     ])
 
@@ -225,6 +266,8 @@ export default function AdminRegistrations() {
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('status')}>
                       <span className="inline-flex items-center gap-1">Tila <SortIcon column="status" /></span>
                     </th>
+                    <th className="text-center px-4 py-3 font-medium text-gray-600">Läsnä</th>
+                    <th className="text-center px-4 py-3 font-medium text-gray-600">Poista</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('created_at')}>
                       <span className="inline-flex items-center gap-1">Ilmoittautui <SortIcon column="created_at" /></span>
                     </th>
@@ -284,6 +327,22 @@ export default function AdminRegistrations() {
                             : reg.status === 'waitlisted' ? 'Jonossa'
                             : 'Peruutettu'}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={reg.is_present ?? false}
+                          onChange={() => handleTogglePresent(reg.id)}
+                          className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => handleDelete(reg.id, `${reg.first_name} ${reg.last_name}`)}
+                          className="text-red-500 hover:text-red-700 text-sm font-medium hover:underline"
+                        >
+                          Poista
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-gray-500">
                         {format(new Date(reg.created_at), 'dd.MM.yyyy HH:mm', { locale: fi })}

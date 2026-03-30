@@ -82,7 +82,7 @@ export default function AdminEventReport() {
       }
       const r = map[key]
       const noShow = s.no_show_count ?? 0
-      const present = Math.max(0, s.confirmed_count - noShow)
+      const present = s.present_count ?? 0
       const durationH = getShiftDurationHours(s)
 
       r.shiftCount++

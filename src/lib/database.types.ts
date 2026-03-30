@@ -268,6 +268,7 @@ export interface Database {
           gdpr_accepted: boolean
           is_under_13: boolean
           guardian_phone: string | null
+          is_present: boolean
           cancellation_token: string
           created_at: string
         }
@@ -288,12 +289,14 @@ export interface Database {
           gdpr_accepted?: boolean
           is_under_13?: boolean
           guardian_phone?: string | null
+          is_present?: boolean
           cancellation_token?: string
           created_at?: string
         }
         Update: {
           status?: string
           notes?: string | null
+          is_present?: boolean
         }
         Relationships: [
           {
@@ -316,8 +319,9 @@ export interface Database {
           max_participants: number
           location: string | null
           notes: string | null
-          no_show_count: number
           confirmed_count: number
+          present_count: number
+          no_show_count: number
           available_spots: number
         }
         Relationships: []

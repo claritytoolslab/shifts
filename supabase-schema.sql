@@ -73,6 +73,7 @@ CREATE TABLE registrations (
   notes TEXT,
   cancellation_token UUID DEFAULT gen_random_uuid(),
   status TEXT DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled', 'waitlisted')),
+  is_present BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -94,6 +95,8 @@ SELECT
   s.location,
   s.notes,
   COUNT(r.id) FILTER (WHERE r.status = 'confirmed') AS confirmed_count,
+  COUNT(r.id) FILTER (WHERE r.status = 'confirmed' AND r.is_present = true) AS present_count,
+  COUNT(r.id) FILTER (WHERE r.status = 'confirmed' AND r.is_present = false) AS no_show_count,
   s.max_participants - COUNT(r.id) FILTER (WHERE r.status = 'confirmed') AS available_spots
 FROM shifts s
 LEFT JOIN registrations r ON r.shift_id = s.id
