@@ -23,8 +23,6 @@ interface RegistrationForm {
   has_ea1: boolean
   has_ajokortti: boolean
   has_jarjestyksenvalvontakortti: boolean
-  is_under_13: boolean
-  guardian_phone: string
   gdpr_accepted: boolean
   confirm_requirements: boolean
 }
@@ -38,7 +36,6 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<RegistrationForm>({
     defaultValues: {
@@ -46,12 +43,9 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: false,
       has_ajokortti: false,
       has_jarjestyksenvalvontakortti: false,
-      is_under_13: false,
       gdpr_accepted: false,
     }
   })
-
-  const isUnder13 = watch('is_under_13')
 
   // Hae sijainnin tiedot
   useEffect(() => {
@@ -121,8 +115,6 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       notes: null,
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
-      is_under_13: data.is_under_13,
-      guardian_phone: data.is_under_13 ? data.guardian_phone?.trim() || null : null,
       cancellation_token: crypto.randomUUID(),
     }
 
@@ -328,34 +320,6 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   <p className="text-sm text-blue-800">{shift.notes}</p>
                 </div>
               )}
-
-              {/* Alle 13v */}
-              <div className="border-t pt-4 space-y-3">
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    {...register('is_under_13')}
-                    className="w-4 h-4 rounded border-gray-300"
-                  />
-                  <span className="text-gray-700">Olen alle 13-vuotias</span>
-                </label>
-                {isUnder13 && (
-                  <div>
-                    <label className="label">Huoltajan puhelinnumero *</label>
-                    <input
-                      type="tel"
-                      {...register('guardian_phone', {
-                        required: isUnder13 ? 'Huoltajan puhelinnumero on pakollinen alle 13-vuotiaille' : false
-                      })}
-                      className="input"
-                      placeholder="+358 40 123 4567"
-                    />
-                    {errors.guardian_phone && (
-                      <p className="text-red-500 text-sm mt-1">{errors.guardian_phone.message}</p>
-                    )}
-                  </div>
-                )}
-              </div>
 
               {/* GDPR */}
               <div className="border-t pt-4">
