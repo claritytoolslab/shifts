@@ -264,6 +264,7 @@ export default function AdminRegistrations() {
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('shift')}>
                       <span className="inline-flex items-center gap-1">Vuoro <SortIcon column="shift" /></span>
                     </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">Sijainti</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Pätevyydet</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('status')}>
                       <span className="inline-flex items-center gap-1">Tila <SortIcon column="status" /></span>
@@ -295,11 +296,11 @@ export default function AdminRegistrations() {
                               {format(new Date(reg.shifts.start_time), 'HH:mm', { locale: fi })} –{' '}
                               {format(new Date(reg.shifts.end_time), 'HH:mm', { locale: fi })}
                             </div>
-                            {reg.shifts.location && (
-                              <div className="text-gray-500 text-xs mt-1">{reg.shifts.location}</div>
-                            )}
                           </>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {reg.shifts?.location || '–'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
