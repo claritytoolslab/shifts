@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { ShiftAvailability, Task, RegistrationInsert, Location } from '../lib/database.types'
+import type { ShiftAvailability, Task, RegistrationInsert, Team } from '../lib/database.types'
 import { X, CheckCircle, Clock, MapPin, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { fi } from 'date-fns/locale'
@@ -23,6 +23,7 @@ interface RegistrationForm {
   has_ea1: boolean
   has_ajokortti: boolean
   has_jarjestyksenvalvontakortti: boolean
+  team_selection: string
   gdpr_accepted: boolean
   confirm_requirements: boolean
 }
@@ -31,7 +32,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
   const [step, setStep] = useState<'form' | 'success'>('form')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [location, setLocation] = useState<Location | null>(null)
+  const [teams, setTeams] = useState<Team[]>([])
 
   const {
     register,
@@ -43,30 +44,22 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: false,
       has_ajokortti: false,
       has_jarjestyksenvalvontakortti: false,
+      team_selection: shift.team_name || '',
       gdpr_accepted: false,
     }
   })
 
-  // Hae sijainnin tiedot
+  // Hae joukkueet
   useEffect(() => {
-    async function fetchLocation() {
-      const { data: shiftData } = await supabase
-        .from('shifts')
-        .select('location_id')
-        .eq('id', shift.shift_id)
-        .single()
-
-      if (shiftData?.location_id) {
-        const { data: locData } = await supabase
-          .from('locations')
-          .select('*')
-          .eq('id', shiftData.location_id)
-          .single()
-        if (locData) setLocation(locData as Location)
-      }
+    async function fetchTeams() {
+      const { data } = await supabase
+        .from('teams')
+        .select('*')
+        .order('name')
+      if (data) setTeams(data as Team[])
     }
-    fetchLocation()
-  }, [shift.shift_id])
+    fetchTeams()
+  }, [])
 
   const hasRequirements =
     task.requires_pelinohjauskoulutus ||
@@ -112,7 +105,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: data.has_ea1,
       has_ajokortti: data.has_ajokortti,
       has_jarjestyksenvalvontakortti: data.has_jarjestyksenvalvontakortti,
-      notes: null,
+<<<<<<< HEAD
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
       cancellation_token: crypto.randomUUID(),
@@ -159,16 +152,9 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                 {format(new Date(shift.end_time), 'HH:mm', { locale: fi })}
               </div>
               {shift.location && (
-                <div className="text-sm text-gray-500 mt-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin size={13} />
-                    <span className="font-medium">{shift.location}</span>
-                  </div>
-                  {location && (
-                    <div className="ml-5 text-xs text-gray-400 mt-0.5">
-                      {location.city}, {location.street} {location.number}
-                    </div>
-                  )}
+                <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-0.5">
+                  <MapPin size={13} />
+                  <span className="font-medium">{shift.location}</span>
                 </div>
               )}
             </div>
@@ -314,12 +300,34 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                 </div>
               </div>
 
+<<<<<<< HEAD
               {shift.notes && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="text-sm font-medium text-blue-900 mb-2">📋 Vuoron lisätiedot</div>
                   <p className="text-sm text-blue-800">{shift.notes}</p>
                 </div>
               )}
+=======
+              {/* Joukkueen valinta */}
+              <div>
+                <label className="label">Joukkue *</label>
+                <select
+                  {...register('team_selection', {
+                    required: 'Joukkue on pakollinen'
+                  })}
+                  className="input"
+                >
+                  <option value="">Valitse joukkue...</option>
+                  <option value="no-team">Ei joukkuetta (yleinen)</option>
+                  {teams.map(team => (
+                    <option key={team.id} value={team.name}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.team_selection && <p className="text-red-500 text-sm mt-1">{errors.team_selection.message}</p>}
+              </div>
+>>>>>>> claude/check-environment-ah5LQ
 
               {/* GDPR */}
               <div className="border-t pt-4">

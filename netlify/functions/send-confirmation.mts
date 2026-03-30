@@ -37,17 +37,12 @@ function buildDefaultHtml(data: {
   shiftStart: string
   shiftEnd: string
   location: string | null
-  locationAddress?: string | null
   cancelUrl: string
   customMessage: string | null
 }): string {
-  let locationRow = ''
-  if (data.location) {
-    locationRow = `<tr><td style="padding:6px 0;color:#666;">Sijainti</td><td style="padding:6px 0;font-weight:600;">${data.location}</td></tr>`
-    if (data.locationAddress) {
-      locationRow += `<tr><td style="padding:6px 0;color:#666;"></td><td style="padding:6px 0;color:#999;font-size:13px;">${data.locationAddress}</td></tr>`
-    }
-  }
+  const locationRow = data.location
+    ? `<tr><td style="padding:6px 0;color:#666;">Sijainti</td><td style="padding:6px 0;font-weight:600;">${data.location}</td></tr>`
+    : ''
 
   const customSection = data.customMessage
     ? `<div style="margin:24px 0;padding:16px;background:#f0f9ff;border-radius:8px;">${data.customMessage}</div>`
@@ -72,12 +67,12 @@ function buildDefaultHtml(data: {
         ${locationRow}
       </table>
 
-      <div style="margin:24px 0;padding:16px;background:#fef3c7;border-radius:8px;text-align:center;">
+      ${customSection}
+
+      <div style="margin:32px 0;padding:16px;background:#fef3c7;border-radius:8px;text-align:center;">
         <p style="margin:0 0 8px;font-size:14px;color:#92400e;">Jos et pääse paikalle, peruuta ilmoittautumisesi:</p>
         <a href="${data.cancelUrl}" style="display:inline-block;padding:10px 24px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">Peruuta ilmoittautuminen</a>
       </div>
-
-      ${customSection}
 
       <p style="margin:24px 0 0;font-size:13px;color:#999;">Tämä viesti on lähetetty automaattisesti. Älä vastaa tähän viestiin.</p>
     </div>
@@ -154,19 +149,6 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    // Hae sijainnin täydellinen osoite jos location_id on asetettu
-    let locationAddress: string | null = null
-    if (shift.location_id) {
-      const { data: locationData } = await supabase
-        .from('locations')
-        .select('*')
-        .eq('id', shift.location_id)
-        .single()
-      if (locationData) {
-        locationAddress = `${locationData.city}, ${locationData.street} ${locationData.number}`
-      }
-    }
-
     const cancelUrl = `${siteUrl}/.netlify/functions/cancel-registration?token=${reg.cancellation_token}`
     const senderName = eventData.sender_name || 'Varauslista'
     const subject = eventData.confirmation_email_subject || `Ilmoittautumisesi on vahvistettu – ${eventData.name}`
@@ -178,7 +160,6 @@ export const handler: Handler = async (event) => {
       shiftStart: formatDate(shift.start_time),
       shiftEnd: formatDate(shift.end_time),
       location: shift.location,
-      locationAddress,
       cancelUrl,
       customMessage: eventData.confirmation_email_body,
     })

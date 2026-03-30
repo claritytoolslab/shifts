@@ -198,6 +198,40 @@ export interface Database {
           }
         ]
       }
+      locations: {
+        Row: {
+          id: string
+          event_id: string
+          name: string
+          city: string
+          street: string
+          number: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          name: string
+          city: string
+          street: string
+          number: string
+          created_at?: string
+        }
+        Update: {
+          name?: string
+          city?: string
+          street?: string
+          number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       categories: {
         Row: { id: string; name: string; created_at: string }
         Insert: { id?: string; name: string; created_at?: string }
