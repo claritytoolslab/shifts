@@ -17,6 +17,8 @@ export default function AdminEventDetail() {
   const [showEmailSettings, setShowEmailSettings] = useState(false)
   const [emailSubject, setEmailSubject] = useState('')
   const [emailBody, setEmailBody] = useState('')
+  const [emailBodyText, setEmailBodyText] = useState('')
+  const [emailMode, setEmailMode] = useState<'text' | 'html'>('text')
   const [senderName, setSenderName] = useState('')
   const [savingEmail, setSavingEmail] = useState(false)
 
@@ -56,13 +58,91 @@ export default function AdminEventDetail() {
     setLoading(false)
   }
 
+  function textToHtml(text: string): string {
+    if (!text.trim()) return ''
+
+    const lines = text.split('\n')
+    let html = ''
+    let inList = false
+    let listItems: string[] = []
+
+    lines.forEach((line) => {
+      const trimmed = line.trim()
+
+      if (trimmed.startsWith('-')) {
+        // Lista-rivi
+        if (!inList) {
+          inList = true
+          listItems = []
+        }
+        const item = trimmed.slice(1).trim()
+        listItems.push(`  <li>${item}</li>`)
+      } else if (trimmed === '') {
+        // Tyhjä rivi - lopeta lista jos käynnissä
+        if (inList) {
+          html += `<ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</ul>\n\n`
+          inList = false
+          listItems = []
+        }
+      } else {
+        // Tavallinen rivi
+        if (inList) {
+          html += `<ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</ul>\n\n`
+          inList = false
+          listItems = []
+        }
+        html += `<p style="margin: 0 0 12px 0; color: #555; line-height: 1.6;">${trimmed}</p>\n`
+      }
+    })
+
+    // Lopeta lista jos vielä käynnissä
+    if (inList && listItems.length > 0) {
+      html += `<ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">\n${listItems.join('\n')}\n</ul>`
+    }
+
+    return html.trim()
+  }
+
+  function htmlToText(html: string): string {
+    // Yksinkertainen konversio HTML:stä tekstiin
+    let text = html
+      .replace(/<ul[^>]*>/g, '')
+      .replace(/<\/ul>/g, '')
+      .replace(/<li[^>]*>/g, '- ')
+      .replace(/<\/li>/g, '')
+      .replace(/<p[^>]*>/g, '')
+      .replace(/<\/p>/g, '\n')
+      .replace(/<h3[^>]*>/g, '')
+      .replace(/<\/h3>/g, '\n')
+      .replace(/<br\s*\/?>/g, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+    return text.trim()
+  }
+
   function openEmailSettings() {
     if (event) {
       setEmailSubject(event.confirmation_email_subject ?? '')
       setEmailBody(event.confirmation_email_body ?? '')
       setSenderName(event.sender_name ?? '')
+      // Konvertoi HTML tekstiksi näyttöä varten
+      setEmailBodyText(htmlToText(event.confirmation_email_body ?? ''))
+      setEmailMode('text')
     }
     setShowEmailSettings(true)
+  }
+
+  function handleEmailTextChange(text: string) {
+    setEmailBodyText(text)
+    setEmailBody(textToHtml(text))
+  }
+
+  function handleEmailHtmlChange(html: string) {
+    setEmailBody(html)
+    setEmailBodyText(htmlToText(html))
   }
 
   async function saveEmailSettings() {
@@ -303,31 +383,69 @@ export default function AdminEventDetail() {
                 <p className="text-xs text-gray-400 mt-1">Tyhjä = oletus-otsikko</p>
               </div>
               <div>
-                <label className="label">Mukautettu viesti (HTML)</label>
-                <textarea
-                  className="input font-mono text-sm"
-                  rows={10}
-                  value={emailBody}
-                  onChange={e => setEmailBody(e.target.value)}
-                  placeholder={`<h3 style="margin: 0 0 12px 0; font-size: 16px; color: #333;">Muistilista:</h3>
-<ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">
-  <li>Saavu 15 min ennen vuoron alkua</li>
-  <li>Ota mukaan vedenpullo ja energiabaari</li>
-  <li>Käytä mukavaa ja liikuntakelpoista vaatetta</li>
-</ul>
-
-<p style="margin: 16px 0 0 0; font-size: 14px; color: #666;">Kysymyksiä? Ota yhteyttä järjestäjiin.</p>`}
-                />
-                <p className="text-xs text-gray-400 mt-2">
-                  Näytetään sähköpostissa vuorotietojen alla. Käytettävissä olevat HTML-elementit:
-                </p>
-                <div className="mt-2 text-xs text-gray-500 space-y-1">
-                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">&lt;h3&gt;Otsikko&lt;/h3&gt;</code> – otsikko</p>
-                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">&lt;ul&gt;&lt;li&gt;kohta&lt;/li&gt;&lt;/ul&gt;</code> – luettelo</p>
-                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">&lt;p&gt;teksti&lt;/p&gt;</code> – kappale</p>
-                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">&lt;a href="url"&gt;linkki&lt;/a&gt;</code> – linkki</p>
-                  <p><code className="bg-gray-100 px-1.5 py-0.5 rounded">style="..."</code> – värit, marginaalit, koot</p>
+                <label className="label">Mukautettu viesti</label>
+                <div className="flex gap-2 mb-2 border-b border-gray-200">
+                  <button
+                    onClick={() => setEmailMode('text')}
+                    className={`px-3 py-2 text-sm font-medium transition-colors ${
+                      emailMode === 'text'
+                        ? 'border-b-2 border-blue-600 text-blue-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Normaali teksti
+                  </button>
+                  <button
+                    onClick={() => setEmailMode('html')}
+                    className={`px-3 py-2 text-sm font-medium transition-colors ${
+                      emailMode === 'html'
+                        ? 'border-b-2 border-blue-600 text-blue-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    HTML (advanced)
+                  </button>
                 </div>
+
+                {emailMode === 'text' ? (
+                  <>
+                    <textarea
+                      className="input text-sm"
+                      rows={10}
+                      value={emailBodyText}
+                      onChange={e => handleEmailTextChange(e.target.value)}
+                      placeholder={`Muistilista:
+- Saavu 15 min ennen vuoron alkua
+- Ota mukaan vedenpullo ja energiabaari
+- Käytä mukavaa ja liikuntakelpoista vaatetta
+
+Kysymyksiä? Ota yhteyttä järjestäjiin.`}
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Kirjoita normaalia tekstiä. Rivit jotka alkavat "-" tulevat listaksi. Tyhjä rivi erottaa kappaleet.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <textarea
+                      className="input font-mono text-sm"
+                      rows={10}
+                      value={emailBody}
+                      onChange={e => handleEmailHtmlChange(e.target.value)}
+                      placeholder={`<p>Muistilista:</p>
+<ul style="margin: 0; padding-left: 20px;">
+  <li>Saavu 15 min ennen</li>
+  <li>Ota mukaan vesi</li>
+</ul>`}
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Käytettävissä: <code className="bg-gray-100 px-1 rounded">&lt;p&gt;</code> (kappale),
+                      <code className="bg-gray-100 px-1 rounded ml-1">&lt;ul&gt;&lt;li&gt;</code> (lista),
+                      <code className="bg-gray-100 px-1 rounded ml-1">&lt;a href=""&gt;</code> (linkki),
+                      <code className="bg-gray-100 px-1 rounded ml-1">style=""</code> (värit/marginaalit)
+                    </p>
+                  </>
+                )}
               </div>
               <div className="flex gap-3 pt-2">
                 <button
