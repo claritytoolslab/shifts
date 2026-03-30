@@ -20,7 +20,7 @@ interface RegistrationWithDetails extends Registration {
   }
 }
 
-type SortKey = 'name' | 'event' | 'task' | 'shift' | 'status' | 'created_at'
+type SortKey = 'name' | 'event' | 'task' | 'shift' | 'location' | 'status' | 'created_at'
 type SortDir = 'asc' | 'desc'
 
 export default function AdminRegistrations() {
@@ -30,6 +30,7 @@ export default function AdminRegistrations() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [eventFilter, setEventFilter] = useState<string>('all')
   const [taskFilter, setTaskFilter] = useState<string>('all')
+  const [locationFilter, setLocationFilter] = useState<string>('all')
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [sortKey, setSortKey] = useState<SortKey>('created_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -63,6 +64,7 @@ export default function AdminRegistrations() {
 
   const uniqueEvents = [...new Set(registrations.map(r => r.shifts?.tasks?.events?.name).filter(Boolean))] as string[]
   const uniqueTasks = [...new Set(registrations.map(r => r.shifts?.tasks?.name).filter(Boolean))] as string[]
+  const uniqueLocations = [...new Set(registrations.map(r => r.shifts?.location).filter(Boolean))] as string[]
   const uniqueDates = [...new Set(registrations.map(r => r.shifts ? format(new Date(r.shifts.start_time), 'dd.MM.yyyy') : null).filter(Boolean))] as string[]
 
   const filtered = registrations.filter(reg => {
@@ -73,9 +75,10 @@ export default function AdminRegistrations() {
     const matchStatus = statusFilter === 'all' || reg.status === statusFilter
     const matchEvent = eventFilter === 'all' || reg.shifts?.tasks?.events?.name === eventFilter
     const matchTask = taskFilter === 'all' || reg.shifts?.tasks?.name === taskFilter
+    const matchLocation = locationFilter === 'all' || reg.shifts?.location === locationFilter
     const matchDate = dateFilter === 'all' || (reg.shifts && format(new Date(reg.shifts.start_time), 'dd.MM.yyyy') === dateFilter)
 
-    return matchSearch && matchStatus && matchEvent && matchTask && matchDate
+    return matchSearch && matchStatus && matchEvent && matchTask && matchLocation && matchDate
   })
 
   function getSortValue(reg: RegistrationWithDetails, key: SortKey): string {
@@ -84,6 +87,7 @@ export default function AdminRegistrations() {
       case 'event': return (reg.shifts?.tasks?.events?.name ?? '').toLowerCase()
       case 'task': return (reg.shifts?.tasks?.name ?? '').toLowerCase()
       case 'shift': return reg.shifts?.start_time ?? ''
+      case 'location': return (reg.shifts?.location ?? '').toLowerCase()
       case 'status': return reg.status
       case 'created_at': return reg.created_at
     }
@@ -111,7 +115,7 @@ export default function AdminRegistrations() {
   }
 
   function exportCSV() {
-    const headers = ['Nimi', 'Sähköposti', 'Puhelin', 'Tapahtuma', 'Tehtävä', 'Vuoro', 'Status', 'Ilmoittautumisaika']
+    const headers = ['Nimi', 'Sähköposti', 'Puhelin', 'Tapahtuma', 'Tehtävä', 'Vuoro', 'Sijainti', 'Status', 'Ilmoittautumisaika']
     const rows = filtered.map(reg => [
       `${reg.first_name} ${reg.last_name}`,
       reg.email,
@@ -119,6 +123,7 @@ export default function AdminRegistrations() {
       reg.shifts?.tasks?.events?.name ?? '',
       reg.shifts?.tasks?.name ?? '',
       reg.shifts ? `${format(new Date(reg.shifts.start_time), 'dd.MM.yyyy HH:mm')} - ${format(new Date(reg.shifts.end_time), 'HH:mm')}` : '',
+      reg.shifts?.location ?? '',
       reg.status,
       format(new Date(reg.created_at), 'dd.MM.yyyy HH:mm'),
     ])
@@ -198,6 +203,16 @@ export default function AdminRegistrations() {
               <option key={date} value={date}>{date}</option>
             ))}
           </select>
+          <select
+            value={locationFilter}
+            onChange={e => setLocationFilter(e.target.value)}
+            className="input w-auto"
+          >
+            <option value="all">Kaikki sijainnit</option>
+            {uniqueLocations.map(location => (
+              <option key={location} value={location}>{location}</option>
+            ))}
+          </select>
         </div>
 
         {loading ? (
@@ -223,7 +238,9 @@ export default function AdminRegistrations() {
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('shift')}>
                       <span className="inline-flex items-center gap-1">Vuoro <SortIcon column="shift" /></span>
                     </th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Sijainti</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('location')}>
+                      <span className="inline-flex items-center gap-1">Sijainti <SortIcon column="location" /></span>
+                    </th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Pätevyydet</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('status')}>
                       <span className="inline-flex items-center gap-1">Tila <SortIcon column="status" /></span>
