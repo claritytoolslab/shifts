@@ -105,7 +105,6 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: data.has_ea1,
       has_ajokortti: data.has_ajokortti,
       has_jarjestyksenvalvontakortti: data.has_jarjestyksenvalvontakortti,
-<<<<<<< HEAD
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
       cancellation_token: crypto.randomUUID(),
@@ -300,14 +299,13 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                 </div>
               </div>
 
-<<<<<<< HEAD
               {shift.notes && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="text-sm font-medium text-blue-900 mb-2">📋 Vuoron lisätiedot</div>
                   <p className="text-sm text-blue-800">{shift.notes}</p>
                 </div>
               )}
-=======
+
               {/* Joukkueen valinta */}
               <div>
                 <label className="label">Joukkue *</label>
@@ -327,7 +325,6 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                 </select>
                 {errors.team_selection && <p className="text-red-500 text-sm mt-1">{errors.team_selection.message}</p>}
               </div>
->>>>>>> claude/check-environment-ah5LQ
 
               {/* GDPR */}
               <div className="border-t pt-4">
