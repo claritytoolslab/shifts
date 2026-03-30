@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { ShiftAvailability, Task, RegistrationInsert } from '../lib/database.types'
+import type { ShiftAvailability, Task, RegistrationInsert, Team } from '../lib/database.types'
 import { X, CheckCircle, Clock, MapPin, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { fi } from 'date-fns/locale'
@@ -23,9 +23,7 @@ interface RegistrationForm {
   has_ea1: boolean
   has_ajokortti: boolean
   has_jarjestyksenvalvontakortti: boolean
-  notes: string
-  is_under_13: boolean
-  guardian_phone: string
+  team_selection: string
   gdpr_accepted: boolean
   confirm_requirements: boolean
 }
@@ -34,11 +32,11 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
   const [step, setStep] = useState<'form' | 'success'>('form')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [teams, setTeams] = useState<Team[]>([])
 
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<RegistrationForm>({
     defaultValues: {
@@ -46,12 +44,22 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: false,
       has_ajokortti: false,
       has_jarjestyksenvalvontakortti: false,
-      is_under_13: false,
+      team_selection: shift.team_name || '',
       gdpr_accepted: false,
     }
   })
 
-  const isUnder13 = watch('is_under_13')
+  // Hae joukkueet
+  useEffect(() => {
+    async function fetchTeams() {
+      const { data } = await supabase
+        .from('teams')
+        .select('*')
+        .order('name')
+      if (data) setTeams(data as Team[])
+    }
+    fetchTeams()
+  }, [])
 
   const hasRequirements =
     task.requires_pelinohjauskoulutus ||
@@ -97,11 +105,8 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: data.has_ea1,
       has_ajokortti: data.has_ajokortti,
       has_jarjestyksenvalvontakortti: data.has_jarjestyksenvalvontakortti,
-      notes: data.notes?.trim() || null,
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
-      is_under_13: data.is_under_13,
-      guardian_phone: data.is_under_13 ? data.guardian_phone?.trim() || null : null,
       cancellation_token: crypto.randomUUID(),
     }
 
@@ -294,42 +299,24 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                 </div>
               </div>
 
+              {/* Joukkueen valinta */}
               <div>
-                <label className="label">Lisätietoja</label>
-                <textarea
-                  {...register('notes')}
+                <label className="label">Joukkue *</label>
+                <select
+                  {...register('team_selection', {
+                    required: 'Joukkue on pakollinen'
+                  })}
                   className="input"
-                  rows={2}
-                  placeholder="Muuta huomioitavaa..."
-                />
-              </div>
-
-              {/* Alle 13v */}
-              <div className="border-t pt-4 space-y-3">
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    {...register('is_under_13')}
-                    className="w-4 h-4 rounded border-gray-300"
-                  />
-                  <span className="text-gray-700">Olen alle 13-vuotias</span>
-                </label>
-                {isUnder13 && (
-                  <div>
-                    <label className="label">Huoltajan puhelinnumero *</label>
-                    <input
-                      type="tel"
-                      {...register('guardian_phone', {
-                        required: isUnder13 ? 'Huoltajan puhelinnumero on pakollinen alle 13-vuotiaille' : false
-                      })}
-                      className="input"
-                      placeholder="+358 40 123 4567"
-                    />
-                    {errors.guardian_phone && (
-                      <p className="text-red-500 text-sm mt-1">{errors.guardian_phone.message}</p>
-                    )}
-                  </div>
-                )}
+                >
+                  <option value="">Valitse joukkue...</option>
+                  <option value="no-team">Ei joukkuetta (yleinen)</option>
+                  {teams.map(team => (
+                    <option key={team.id} value={team.name}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.team_selection && <p className="text-red-500 text-sm mt-1">{errors.team_selection.message}</p>}
               </div>
 
               {/* GDPR */}

@@ -122,6 +122,7 @@ export interface Database {
           end_time: string
           max_participants: number
           location: string | null
+          location_id: string | null
           notes: string | null
           no_show_count: number
           created_at: string
@@ -135,6 +136,7 @@ export interface Database {
           end_time: string
           max_participants: number
           location?: string | null
+          location_id?: string | null
           notes?: string | null
           no_show_count?: number
           created_at?: string
@@ -148,6 +150,7 @@ export interface Database {
           end_time?: string
           max_participants?: number
           location?: string | null
+          location_id?: string | null
           notes?: string | null
           no_show_count?: number
           updated_at?: string
@@ -157,6 +160,40 @@ export interface Database {
             foreignKeyName: "shifts_task_id_fkey"
             columns: ["task_id"]
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      locations: {
+        Row: {
+          id: string
+          event_id: string
+          name: string
+          city: string
+          street: string
+          number: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          name: string
+          city: string
+          street: string
+          number: string
+          created_at?: string
+        }
+        Update: {
+          name?: string
+          city?: string
+          street?: string
+          number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
             referencedColumns: ["id"]
           }
         ]
@@ -300,6 +337,7 @@ export type ShiftAvailability = Database['public']['Views']['shift_availability'
 
 export type Category = Database['public']['Tables']['categories']['Row']
 export type Team = Database['public']['Tables']['teams']['Row']
+export type Location = Database['public']['Tables']['locations']['Row']
 
 export type EventInsert = Database['public']['Tables']['events']['Insert']
 export type TaskInsert = Database['public']['Tables']['tasks']['Insert']
