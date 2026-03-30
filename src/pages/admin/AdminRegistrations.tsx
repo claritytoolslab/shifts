@@ -10,6 +10,7 @@ interface RegistrationWithDetails extends Registration {
   shifts: {
     start_time: string
     end_time: string
+    location: string | null
     tasks: {
       name: string
       events: {
@@ -45,6 +46,7 @@ export default function AdminRegistrations() {
         shifts (
           start_time,
           end_time,
+          location,
           tasks (
             name,
             events (
@@ -293,6 +295,9 @@ export default function AdminRegistrations() {
                               {format(new Date(reg.shifts.start_time), 'HH:mm', { locale: fi })} –{' '}
                               {format(new Date(reg.shifts.end_time), 'HH:mm', { locale: fi })}
                             </div>
+                            {reg.shifts.location && (
+                              <div className="text-gray-500 text-xs mt-1">{reg.shifts.location}</div>
+                            )}
                           </>
                         )}
                       </td>
