@@ -20,7 +20,7 @@ interface RegistrationWithDetails extends Registration {
   }
 }
 
-type SortKey = 'name' | 'event' | 'task' | 'shift' | 'status' | 'created_at'
+type SortKey = 'name' | 'event' | 'task' | 'shift' | 'status' | 'location' | 'is_present' | 'created_at'
 type SortDir = 'asc' | 'desc'
 
 export default function AdminRegistrations() {
@@ -85,6 +85,8 @@ export default function AdminRegistrations() {
       case 'task': return (reg.shifts?.tasks?.name ?? '').toLowerCase()
       case 'shift': return reg.shifts?.start_time ?? ''
       case 'status': return reg.status
+      case 'location': return (reg.shifts?.location ?? '').toLowerCase()
+      case 'is_present': return reg.is_present ? 'z' : 'a' // z=present, a=not present (reverse alphabetical for desc)
       case 'created_at': return reg.created_at
     }
   }
@@ -264,12 +266,16 @@ export default function AdminRegistrations() {
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('shift')}>
                       <span className="inline-flex items-center gap-1">Vuoro <SortIcon column="shift" /></span>
                     </th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Sijainti</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('location')}>
+                      <span className="inline-flex items-center gap-1">Sijainti <SortIcon column="location" /></span>
+                    </th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Pätevyydet</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('status')}>
                       <span className="inline-flex items-center gap-1">Tila <SortIcon column="status" /></span>
                     </th>
-                    <th className="text-center px-4 py-3 font-medium text-gray-600">Läsnä</th>
+                    <th className="text-center px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('is_present')}>
+                      <span className="inline-flex items-center gap-1 justify-center">Läsnä <SortIcon column="is_present" /></span>
+                    </th>
                     <th className="text-center px-4 py-3 font-medium text-gray-600">Poista</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('created_at')}>
                       <span className="inline-flex items-center gap-1">Ilmoittautui <SortIcon column="created_at" /></span>
