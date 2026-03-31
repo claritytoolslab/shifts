@@ -31,6 +31,8 @@ export default function AdminRegistrations() {
   const [eventFilter, setEventFilter] = useState<string>('all')
   const [taskFilter, setTaskFilter] = useState<string>('all')
   const [dateFilter, setDateFilter] = useState<string>('all')
+  const [locationFilter, setLocationFilter] = useState<string>('all')
+  const [isPresentFilter, setIsPresentFilter] = useState<string>('all')
   const [sortKey, setSortKey] = useState<SortKey>('created_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
@@ -64,6 +66,7 @@ export default function AdminRegistrations() {
   const uniqueEvents = [...new Set(registrations.map(r => r.shifts?.tasks?.events?.name).filter(Boolean))] as string[]
   const uniqueTasks = [...new Set(registrations.map(r => r.shifts?.tasks?.name).filter(Boolean))] as string[]
   const uniqueDates = [...new Set(registrations.map(r => r.shifts ? format(new Date(r.shifts.start_time), 'dd.MM.yyyy') : null).filter(Boolean))] as string[]
+  const uniqueLocations = [...new Set(registrations.map(r => r.shifts?.location).filter(Boolean))] as string[]
 
   const filtered = registrations.filter(reg => {
     const matchSearch = search === '' || [
@@ -74,8 +77,12 @@ export default function AdminRegistrations() {
     const matchEvent = eventFilter === 'all' || reg.shifts?.tasks?.events?.name === eventFilter
     const matchTask = taskFilter === 'all' || reg.shifts?.tasks?.name === taskFilter
     const matchDate = dateFilter === 'all' || (reg.shifts && format(new Date(reg.shifts.start_time), 'dd.MM.yyyy') === dateFilter)
+    const matchLocation = locationFilter === 'all' || reg.shifts?.location === locationFilter
+    const matchIsPresent = isPresentFilter === 'all' ||
+      (isPresentFilter === 'present' && reg.is_present === true) ||
+      (isPresentFilter === 'not_present' && reg.is_present === false)
 
-    return matchSearch && matchStatus && matchEvent && matchTask && matchDate
+    return matchSearch && matchStatus && matchEvent && matchTask && matchDate && matchLocation && matchIsPresent
   })
 
   function getSortValue(reg: RegistrationWithDetails, key: SortKey): string {
@@ -240,6 +247,25 @@ export default function AdminRegistrations() {
             {uniqueDates.map(date => (
               <option key={date} value={date}>{date}</option>
             ))}
+          </select>
+          <select
+            value={locationFilter}
+            onChange={e => setLocationFilter(e.target.value)}
+            className="input w-auto"
+          >
+            <option value="all">Kaikki sijainnit</option>
+            {uniqueLocations.map(location => (
+              <option key={location} value={location}>{location}</option>
+            ))}
+          </select>
+          <select
+            value={isPresentFilter}
+            onChange={e => setIsPresentFilter(e.target.value)}
+            className="input w-auto"
+          >
+            <option value="all">Kaikki läsnä-tilat</option>
+            <option value="present">Läsnä</option>
+            <option value="not_present">Ei läsnä</option>
           </select>
         </div>
 
