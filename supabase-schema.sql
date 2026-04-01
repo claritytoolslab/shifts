@@ -84,7 +84,8 @@ CREATE INDEX idx_registrations_shift_id ON registrations(shift_id);
 CREATE INDEX idx_events_is_active ON events(is_active);
 
 -- Näkymä: vuoro täyttöaste (sisältää team_name)
-CREATE OR REPLACE VIEW shift_availability AS
+-- security_invoker = true: käyttää kyselyjän RLS-oikeuksia, ei view-omistajan
+CREATE OR REPLACE VIEW shift_availability WITH (security_invoker = true) AS
 SELECT
   s.id AS shift_id,
   s.task_id,
@@ -107,6 +108,8 @@ ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_queue ENABLE ROW LEVEL SECURITY;
 
 -- Julkinen lukupolitiikka (kaikki voivat lukea aktiiviset tapahtumat)
 CREATE POLICY "Public can view active events" ON events
@@ -145,6 +148,12 @@ CREATE POLICY "Authenticated users can view all registrations" ON registrations
 
 CREATE POLICY "Authenticated users can update registrations" ON registrations
   FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can manage locations" ON locations
+  FOR ALL USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can manage email_queue" ON email_queue
+  FOR ALL USING (auth.role() = 'authenticated');
 
 -- Funktio: tarkista onko vuorossa tilaa
 CREATE OR REPLACE FUNCTION check_shift_availability(shift_id UUID)
