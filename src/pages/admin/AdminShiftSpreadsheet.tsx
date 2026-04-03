@@ -87,6 +87,7 @@ export default function AdminShiftSpreadsheet() {
   const [filterDay, setFilterDay] = useState('')
   const [filterTeam, setFilterTeam] = useState('')
   const [filterTask, setFilterTask] = useState('')
+  const [filterLocation, setFilterLocation] = useState('')
 
   // Inline-luonti
   const [creatingTask, setCreatingTask] = useState<string | null>(null) // row _id
@@ -103,20 +104,20 @@ export default function AdminShiftSpreadsheet() {
   const defaultRow = useCallback((): ShiftRow => ({
     _id: tempId(),
     _status: 'new',
-    taskId: tasks[0]?.id ?? '',
-    teamName: '',
-    startDay: eventDays[0] ?? '',
+    taskId: filterTask || (tasks[0]?.id ?? ''),
+    teamName: filterTeam === '__general__' ? '' : (filterTeam || ''),
+    startDay: filterDay || (eventDays[0] ?? ''),
     startHour: '09',
     startMinute: '00',
-    endDay: eventDays[0] ?? '',
+    endDay: filterDay || (eventDays[0] ?? ''),
     endHour: '17',
     endMinute: '00',
     maxParticipants: '5',
-    location: '',
-    locationId: '',
+    location: filterLocation || '',
+    locationId: filterLocation ? (locations.find(l => l.name === filterLocation)?.id ?? '') : '',
     notes: '',
     confirmedCount: 0,
-  }), [tasks, eventDays])
+  }), [tasks, eventDays, filterDay, filterTask, filterTeam, filterLocation, locations])
 
   useEffect(() => {
     if (eventId) fetchData()
@@ -351,6 +352,7 @@ export default function AdminShiftSpreadsheet() {
       if (filterTeam === '__general__' && r.teamName !== '') return false
       if (filterTeam && filterTeam !== '__general__' && r.teamName !== filterTeam) return false
       if (filterTask && r.taskId !== filterTask) return false
+      if (filterLocation && r.location !== filterLocation) return false
       return true
     })
 
@@ -386,7 +388,7 @@ export default function AdminShiftSpreadsheet() {
     }
 
     return result
-  }, [rows, filterDay, filterTeam, filterTask, sortKey, sortDir, taskNameMap])
+  }, [rows, filterDay, filterTeam, filterTask, filterLocation, sortKey, sortDir, taskNameMap])
 
   if (loading) {
     return (
@@ -460,9 +462,19 @@ export default function AdminShiftSpreadsheet() {
               <option key={t.id} value={t.name}>{t.name}</option>
             ))}
           </select>
-          {(filterDay || filterTask || filterTeam) && (
+          <select
+            value={filterLocation}
+            onChange={e => setFilterLocation(e.target.value)}
+            className="input !w-auto text-sm"
+          >
+            <option value="">Kaikki sijainnit</option>
+            {locations.map(loc => (
+              <option key={loc.id} value={loc.name}>{loc.name}</option>
+            ))}
+          </select>
+          {(filterDay || filterTask || filterTeam || filterLocation) && (
             <button
-              onClick={() => { setFilterDay(''); setFilterTask(''); setFilterTeam('') }}
+              onClick={() => { setFilterDay(''); setFilterTask(''); setFilterTeam(''); setFilterLocation('') }}
               className="text-xs text-blue-600 hover:underline"
             >
               Tyhjennä
