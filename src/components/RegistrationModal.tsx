@@ -100,7 +100,6 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       last_name: data.last_name.trim(),
       email: data.email.trim().toLowerCase(),
       phone: data.phone.trim(),
-      ssn: '',
       has_pelinohjauskoulutus: data.has_pelinohjauskoulutus,
       has_ea1: data.has_ea1,
       has_ajokortti: data.has_ajokortti,

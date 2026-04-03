@@ -87,7 +87,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { registrationId } = JSON.parse(event.body ?? '{}')
+    const { registrationId, queueId } = JSON.parse(event.body ?? '{}')
 
     if (!registrationId) {
       return {
@@ -194,17 +194,26 @@ export const handler: Handler = async (event) => {
       errorMessage = err instanceof Error ? err.message : 'Tuntematon virhe'
     }
 
-    // Tallenna email_queue
-    await supabase.from('email_queue').insert({
-      registration_id: registrationId,
-      to_email: reg.email,
-      subject,
-      html_body: htmlBody,
-      status: emailSent ? 'sent' : 'failed',
-      error_message: errorMessage,
-      attempts: 1,
-      sent_at: emailSent ? new Date().toISOString() : null,
-    })
+    // Tallenna email_queue — päivitä olemassa oleva rivi jos queueId annettu, muuten lisää uusi
+    if (queueId) {
+      await supabase.from('email_queue').update({
+        status: emailSent ? 'sent' : 'failed',
+        error_message: errorMessage,
+        attempts: 1,
+        sent_at: emailSent ? new Date().toISOString() : null,
+      }).eq('id', queueId)
+    } else {
+      await supabase.from('email_queue').insert({
+        registration_id: registrationId,
+        to_email: reg.email,
+        subject,
+        html_body: htmlBody,
+        status: emailSent ? 'sent' : 'failed',
+        error_message: errorMessage,
+        attempts: 1,
+        sent_at: emailSent ? new Date().toISOString() : null,
+      })
+    }
 
     return {
       statusCode: 200,

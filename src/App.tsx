@@ -13,7 +13,6 @@ import AdminEvents from './pages/admin/AdminEvents'
 import AdminEventDetail from './pages/admin/AdminEventDetail'
 import AdminRegistrations from './pages/admin/AdminRegistrations'
 import AdminCategoriesTeams from './pages/admin/AdminCategoriesTeams'
-import AdminAI from './pages/admin/AdminAI'
 import AdminShiftSpreadsheet from './pages/admin/AdminShiftSpreadsheet'
 import AdminEventReport from './pages/admin/AdminEventReport'
 
@@ -99,14 +98,6 @@ export default function App() {
         element={
           <ProtectedRoute>
             <AdminEventReport />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/ai"
-        element={
-          <ProtectedRoute>
-            <AdminAI />
           </ProtectedRoute>
         }
       />

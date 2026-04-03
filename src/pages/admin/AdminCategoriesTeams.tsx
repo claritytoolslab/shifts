@@ -150,7 +150,8 @@ export default function AdminCategoriesTeams() {
   const [taskSaving, setTaskSaving] = useState(false)
   const [taskError, setTaskError] = useState('')
   const [taskFormErrors, setTaskFormErrors] = useState<Record<string, string>>({})
-  const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all')
+  const [selectedEventForLocations, setSelectedEventForLocations] = useState<string>('all')
+  const [selectedEventForTasks, setSelectedEventForTasks] = useState<string>('all')
 
   const emptyTaskForm = (): TaskFormState => ({
     event_id: '',
@@ -191,7 +192,7 @@ export default function AdminCategoriesTeams() {
   }
 
   async function addLocation() {
-    if (!selectedEventFilter || selectedEventFilter === 'all') {
+    if (!selectedEventForLocations || selectedEventForLocations === 'all') {
       setError('Valitse tapahtuma ensin')
       return
     }
@@ -200,7 +201,7 @@ export default function AdminCategoriesTeams() {
       return
     }
     const { error: insertError } = await supabase.from('locations').insert({
-      event_id: selectedEventFilter,
+      event_id: selectedEventForLocations,
       name: newLocation.name.trim(),
       city: newLocation.city.trim(),
       street: newLocation.street.trim(),
@@ -353,9 +354,9 @@ export default function AdminCategoriesTeams() {
     fetchAll()
   }
 
-  const filteredTasks = selectedEventFilter === 'all'
+  const filteredTasks = selectedEventForTasks === 'all'
     ? tasks
-    : tasks.filter(t => t.event_id === selectedEventFilter)
+    : tasks.filter(t => t.event_id === selectedEventForTasks)
 
   const eventName = (id: string) => events.find(e => e.id === id)?.name ?? '–'
 
@@ -406,8 +407,8 @@ export default function AdminCategoriesTeams() {
           {/* Tapahtuma-suodatin */}
           <div className="mb-4">
             <select
-              value={selectedEventFilter}
-              onChange={e => setSelectedEventFilter(e.target.value)}
+              value={selectedEventForLocations}
+              onChange={e => setSelectedEventForLocations(e.target.value)}
               className="input text-sm py-1.5"
             >
               <option value="all">Valitse tapahtuma</option>
@@ -419,16 +420,16 @@ export default function AdminCategoriesTeams() {
             </select>
           </div>
 
-          {selectedEventFilter === 'all' ? (
+          {selectedEventForLocations === 'all' ? (
             <p className="text-sm text-gray-400 py-4">Valitse tapahtuma ensin.</p>
           ) : (
             <>
-              {locations.filter(loc => loc.event_id === selectedEventFilter).length === 0 ? (
+              {locations.filter(loc => loc.event_id === selectedEventForLocations).length === 0 ? (
                 <p className="text-sm text-gray-400 mb-4">Ei vielä sijainteja.</p>
               ) : (
                 <ul className="divide-y divide-gray-100 mb-4">
                   {locations
-                    .filter(loc => loc.event_id === selectedEventFilter)
+                    .filter(loc => loc.event_id === selectedEventForLocations)
                     .map(loc => (
                       <li key={loc.id} className="flex items-center justify-between py-2.5">
                         <div className="flex-1">
@@ -536,8 +537,8 @@ export default function AdminCategoriesTeams() {
           {/* Tapahtuma-suodatin */}
           <div className="mb-3">
             <select
-              value={selectedEventFilter}
-              onChange={e => setSelectedEventFilter(e.target.value)}
+              value={selectedEventForTasks}
+              onChange={e => setSelectedEventForTasks(e.target.value)}
               className="input text-sm py-1.5"
             >
               <option value="all">Kaikki tapahtumat ({tasks.length} tehtävää)</option>

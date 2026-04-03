@@ -65,7 +65,6 @@ CREATE TABLE registrations (
   last_name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT NOT NULL,
-  ssn TEXT NOT NULL, -- henkilötunnus (tallennetaan salattuna tuotannossa)
   has_pelinohjauskoulutus BOOLEAN DEFAULT false,
   has_ea1 BOOLEAN DEFAULT false,
   has_ajokortti BOOLEAN DEFAULT false,

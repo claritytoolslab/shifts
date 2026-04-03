@@ -263,7 +263,7 @@ export default function AdminEventDetail() {
       const res = await fetch('/.netlify/functions/send-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ registrationId: queueItem.registration_id }),
+        body: JSON.stringify({ registrationId: queueItem.registration_id, queueId: queueItem.id }),
       })
       const result = await res.json()
 

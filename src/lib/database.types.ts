@@ -258,7 +258,6 @@ export interface Database {
           last_name: string
           email: string
           phone: string
-          ssn: string
           has_pelinohjauskoulutus: boolean
           has_ea1: boolean
           has_ajokortti: boolean
@@ -279,7 +278,6 @@ export interface Database {
           last_name: string
           email: string
           phone: string
-          ssn: string
           has_pelinohjauskoulutus?: boolean
           has_ea1?: boolean
           has_ajokortti?: boolean
