@@ -262,9 +262,6 @@ export default function EventPage() {
                             {shift.location}
                           </div>
                         )}
-                        {shift.notes && (
-                          <p className="text-xs text-gray-400 mt-0.5 ml-5">{shift.notes}</p>
-                        )}
                         <div className={`flex items-center gap-1 text-xs font-medium mt-1 ml-5 ${
                           shift.available_spots === 0 ? 'text-red-500' : 'text-green-600'
                         }`}>
