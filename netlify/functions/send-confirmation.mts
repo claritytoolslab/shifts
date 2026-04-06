@@ -37,7 +37,6 @@ function buildDefaultHtml(data: {
   shiftStart: string
   shiftEnd: string
   location: string | null
-  shiftNotes: string | null
   cancelUrl: string
   customMessage: string | null
 }): string {
@@ -45,12 +44,8 @@ function buildDefaultHtml(data: {
     ? `<tr><td style="padding:6px 0;color:#666;">Sijainti</td><td style="padding:6px 0;font-weight:600;">${data.location}</td></tr>`
     : ''
 
-  const notesRow = data.shiftNotes
-    ? `<tr><td style="padding:6px 0;color:#666;">Lisätiedot</td><td style="padding:6px 0;font-weight:600;">${data.shiftNotes}</td></tr>`
-    : ''
-
-  const customMessageHtml = data.customMessage
-    ? `<p style="margin:0 0 16px;color:#555;">${data.customMessage}</p>`
+  const customSection = data.customMessage
+    ? `<div style="margin:24px 0;padding:16px;background:#f0f9ff;border-radius:8px;">${data.customMessage}</div>`
     : ''
 
   return `<!DOCTYPE html>
@@ -70,15 +65,16 @@ function buildDefaultHtml(data: {
         <tr><td style="padding:6px 0;color:#666;">Alkaa</td><td style="padding:6px 0;font-weight:600;">${data.shiftStart}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Päättyy</td><td style="padding:6px 0;font-weight:600;">${data.shiftEnd}</td></tr>
         ${locationRow}
-        ${notesRow}
       </table>
 
-      ${customMessageHtml}
+      ${customSection}
 
-      <p style="margin:0 0 8px;font-size:14px;color:#92400e;">Jos et pääse paikalle, peruuta ilmoittautumisesi:</p>
-      <p style="margin:0 0 24px;"><a href="${data.cancelUrl}" style="color:#dc2626;font-size:14px;font-weight:600;text-decoration:underline;">Peruuta ilmoittautuminen</a></p>
+      <div style="margin:32px 0;padding:16px;background:#fef3c7;border-radius:8px;text-align:center;">
+        <p style="margin:0 0 8px;font-size:14px;color:#92400e;">Jos et pääse paikalle, peruuta ilmoittautumisesi:</p>
+        <a href="${data.cancelUrl}" style="display:inline-block;padding:10px 24px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">Peruuta ilmoittautuminen</a>
+      </div>
 
-      <p style="margin:0;font-size:13px;color:#999;">Tämä viesti on lähetetty automaattisesti. Älä vastaa tähän viestiin.</p>
+      <p style="margin:24px 0 0;font-size:13px;color:#999;">Tämä viesti on lähetetty automaattisesti. Älä vastaa tähän viestiin.</p>
     </div>
   </div>
 </body>
@@ -164,7 +160,6 @@ export const handler: Handler = async (event) => {
       shiftStart: formatDate(shift.start_time),
       shiftEnd: formatDate(shift.end_time),
       location: shift.location,
-      shiftNotes: shift.notes,
       cancelUrl,
       customMessage: eventData.confirmation_email_body,
     })
