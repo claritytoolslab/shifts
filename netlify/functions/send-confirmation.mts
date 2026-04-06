@@ -161,7 +161,8 @@ export const handler: Handler = async (event) => {
 
     const cancelUrl = `${siteUrl}/.netlify/functions/cancel-registration?token=${reg.cancellation_token}`
     const senderName = eventData.sender_name || 'Varauslista'
-    const subject = eventData.confirmation_email_subject || `Ilmoittautumisesi on vahvistettu – ${eventData.name}`
+    const baseSubject = eventData.confirmation_email_subject || `Ilmoittautumisesi on vahvistettu – ${eventData.name}`
+    const subject = `${baseSubject} – ${task.name}, ${formatDate(shift.start_time).split(' klo')[0]}`
 
     const htmlBody = buildDefaultHtml({
       firstName: reg.first_name,
@@ -193,6 +194,7 @@ export const handler: Handler = async (event) => {
           to: [{ email: reg.email, name: `${reg.first_name} ${reg.last_name}` }],
           subject,
           htmlContent: htmlBody,
+          headers: { 'X-Entity-Ref-ID': registrationId },
         }),
       })
 
