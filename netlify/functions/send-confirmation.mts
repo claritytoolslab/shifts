@@ -43,20 +43,18 @@ function buildDefaultHtml(data: {
   customMessage: string | null
 }): string {
   const locationRow = data.location
-    ? `<tr><td style="padding:6px 0;color:#666;">Sijainti</td><td style="padding:6px 0;font-weight:600;">${data.location}</td></tr>`
+    ? `<tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap;vertical-align:top;">Sijainti</td><td style="padding:6px 0;font-weight:600;">${data.location}</td></tr>`
     : ''
 
   const notesRow = data.shiftNotes
-    ? `<tr><td style="padding:6px 0;color:#666;">Lisätiedot</td><td style="padding:6px 0;font-weight:600;">${data.shiftNotes}</td></tr>`
+    ? `<tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap;vertical-align:top;">Lisätiedot</td><td style="padding:6px 0;font-weight:600;">${data.shiftNotes}</td></tr>`
     : ''
 
   const descriptionRow = data.taskDescription
-    ? `<tr><td style="padding:6px 0;color:#666;">Kuvaus</td><td style="padding:6px 0;">${data.taskDescription}</td></tr>`
+    ? `<tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap;vertical-align:top;">Kuvaus</td><td style="padding:6px 0;">${data.taskDescription}</td></tr>`
     : ''
 
-  const customMessageHtml = data.customMessage
-    ? `<div style="margin:0 0 24px;">${data.customMessage}</div>`
-    : ''
+  const customMessageHtml = data.customMessage ?? ''
 
   return `<!DOCTYPE html>
 <html lang="fi">
@@ -71,10 +69,10 @@ function buildDefaultHtml(data: {
       <p style="margin:0 0 24px;color:#555;">Ilmoittautumisesi tapahtumaan <strong>${data.eventName}</strong> on vahvistettu.</p>
 
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-        <tr><td style="padding:6px 0;color:#666;">Tehtävä</td><td style="padding:6px 0;font-weight:600;">${data.taskName}</td></tr>
+        <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap;vertical-align:top;">Tehtävä</td><td style="padding:6px 0;font-weight:600;">${data.taskName}</td></tr>
         ${descriptionRow}
-        <tr><td style="padding:6px 0;color:#666;">Alkaa</td><td style="padding:6px 0;font-weight:600;">${data.shiftStart}</td></tr>
-        <tr><td style="padding:6px 0;color:#666;">Päättyy</td><td style="padding:6px 0;font-weight:600;">${data.shiftEnd}</td></tr>
+        <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap;vertical-align:top;">Alkaa</td><td style="padding:6px 0;font-weight:600;">${data.shiftStart}</td></tr>
+        <tr><td style="padding:6px 12px 6px 0;color:#666;white-space:nowrap;vertical-align:top;">Päättyy</td><td style="padding:6px 0;font-weight:600;">${data.shiftEnd}</td></tr>
         ${locationRow}
         ${notesRow}
       </table>
