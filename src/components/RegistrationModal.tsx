@@ -177,6 +177,9 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   {' · '}
                   {task.name}
                 </div>
+                {task.description && (
+                  <p className="text-sm text-gray-500 mt-1">{task.description}</p>
+                )}
               </div>
               <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-4">
                 <X size={20} />
