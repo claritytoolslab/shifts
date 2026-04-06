@@ -38,6 +38,7 @@ function buildDefaultHtml(data: {
   shiftEnd: string
   location: string | null
   shiftNotes: string | null
+  taskDescription: string | null
   cancelUrl: string
   customMessage: string | null
 }): string {
@@ -49,8 +50,12 @@ function buildDefaultHtml(data: {
     ? `<tr><td style="padding:6px 0;color:#666;">Lisätiedot</td><td style="padding:6px 0;font-weight:600;">${data.shiftNotes}</td></tr>`
     : ''
 
+  const descriptionRow = data.taskDescription
+    ? `<tr><td style="padding:6px 0;color:#666;">Kuvaus</td><td style="padding:6px 0;">${data.taskDescription}</td></tr>`
+    : ''
+
   const customMessageHtml = data.customMessage
-    ? `<p style="margin:0 0 24px;color:#555;">${data.customMessage}</p>`
+    ? `<div style="margin:0 0 24px;">${data.customMessage}</div>`
     : ''
 
   return `<!DOCTYPE html>
@@ -67,6 +72,7 @@ function buildDefaultHtml(data: {
 
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
         <tr><td style="padding:6px 0;color:#666;">Tehtävä</td><td style="padding:6px 0;font-weight:600;">${data.taskName}</td></tr>
+        ${descriptionRow}
         <tr><td style="padding:6px 0;color:#666;">Alkaa</td><td style="padding:6px 0;font-weight:600;">${data.shiftStart}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Päättyy</td><td style="padding:6px 0;font-weight:600;">${data.shiftEnd}</td></tr>
         ${locationRow}
@@ -167,6 +173,7 @@ export const handler: Handler = async (event) => {
       shiftEnd: formatDate(shift.end_time),
       location: shift.location,
       shiftNotes: shift.notes,
+      taskDescription: task.description,
       cancelUrl,
       customMessage: eventData.confirmation_email_body,
     })

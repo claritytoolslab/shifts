@@ -45,6 +45,7 @@ function buildReminderHtml(data: {
   shiftEnd: string
   location: string | null
   shiftNotes: string | null
+  taskDescription: string | null
   cancelUrl: string
 }): string {
   const locationRow = data.location
@@ -53,6 +54,10 @@ function buildReminderHtml(data: {
 
   const notesRow = data.shiftNotes
     ? `<tr><td style="padding:6px 0;color:#666;">Lisätiedot</td><td style="padding:6px 0;font-weight:600;">${data.shiftNotes}</td></tr>`
+    : ''
+
+  const descriptionRow = data.taskDescription
+    ? `<tr><td style="padding:6px 0;color:#666;">Kuvaus</td><td style="padding:6px 0;">${data.taskDescription}</td></tr>`
     : ''
 
   const dayName = formatDayName(data.shiftStart)
@@ -71,6 +76,7 @@ function buildReminderHtml(data: {
 
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
         <tr><td style="padding:6px 0;color:#666;">Tehtävä</td><td style="padding:6px 0;font-weight:600;">${data.taskName}</td></tr>
+        ${descriptionRow}
         <tr><td style="padding:6px 0;color:#666;">Alkaa</td><td style="padding:6px 0;font-weight:600;">${data.shiftStart}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Päättyy</td><td style="padding:6px 0;font-weight:600;">${data.shiftEnd}</td></tr>
         ${locationRow}
@@ -161,6 +167,7 @@ export const handler: Handler = async () => {
           shiftEnd: formatDate(shift.end_time),
           location: shift.location,
           shiftNotes: shift.notes,
+          taskDescription: task.description,
           cancelUrl,
         })
 
