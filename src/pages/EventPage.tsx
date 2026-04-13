@@ -352,9 +352,8 @@ export default function EventPage() {
                   <div className="space-y-2">
                     {categoryKeys.map(cat => {
                       const catTasks = categoryGroups[cat]
-                      const totalShifts = catTasks.reduce((sum, t) => sum + t.shifts.length, 0)
-                      const freeShifts = catTasks.reduce((sum, t) =>
-                        sum + t.shifts.filter(s => s.available_spots > 0).length, 0)
+                      const totalSpots = catTasks.reduce((sum, t) => sum + t.shifts.reduce((s, shift) => s + shift.max_participants, 0), 0)
+                      const freeSpots = catTasks.reduce((sum, t) => sum + t.shifts.reduce((s, shift) => s + shift.available_spots, 0), 0)
                       return (
                         <button
                           key={cat}
@@ -365,9 +364,9 @@ export default function EventPage() {
                             <div className="font-semibold text-gray-900">{cat}</div>
                             <div className="text-sm text-gray-500 mt-0.5">
                               {catTasks.length} tehtävää
-                              {totalShifts > 0 && (
-                                <> · <span className={freeShifts > 0 ? 'text-green-600' : 'text-red-500'}>
-                                  {freeShifts}/{totalShifts} vuoroa vapaana
+                              {totalSpots > 0 && (
+                                <> · <span className={freeSpots > 0 ? 'text-green-600' : 'text-red-500'}>
+                                  {freeSpots}/{totalSpots} paikkaa vapaana
                                 </span></>
                               )}
                             </div>
@@ -389,9 +388,8 @@ export default function EventPage() {
                   <div className="space-y-2">
                     {teamKeys.map(team => {
                       const teamTaskList = teamGroups[team]
-                      const totalShifts = teamTaskList.reduce((sum, t) => sum + t.shifts.length, 0)
-                      const freeShifts = teamTaskList.reduce((sum, t) =>
-                        sum + t.shifts.filter(s => s.available_spots > 0).length, 0)
+                      const totalSpots = teamTaskList.reduce((sum, t) => sum + t.shifts.reduce((s, shift) => s + shift.max_participants, 0), 0)
+                      const freeSpots = teamTaskList.reduce((sum, t) => sum + t.shifts.reduce((s, shift) => s + shift.available_spots, 0), 0)
                       return (
                         <button
                           key={team}
@@ -402,9 +400,9 @@ export default function EventPage() {
                             <div className="font-semibold text-gray-900">{team}</div>
                             <div className="text-sm text-gray-500 mt-0.5">
                               {teamTaskList.length} tehtävää
-                              {totalShifts > 0 && (
-                                <> · <span className={freeShifts > 0 ? 'text-green-600' : 'text-red-500'}>
-                                  {freeShifts}/{totalShifts} vuoroa vapaana
+                              {totalSpots > 0 && (
+                                <> · <span className={freeSpots > 0 ? 'text-green-600' : 'text-red-500'}>
+                                  {freeSpots}/{totalSpots} paikkaa vapaana
                                 </span></>
                               )}
                             </div>
