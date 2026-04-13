@@ -23,6 +23,7 @@ interface RegistrationForm {
   has_ea1: boolean
   has_ajokortti: boolean
   has_jarjestyksenvalvontakortti: boolean
+  notes: string
   team_selection: string
   gdpr_accepted: boolean
   confirm_requirements: boolean
@@ -104,6 +105,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: data.has_ea1,
       has_ajokortti: data.has_ajokortti,
       has_jarjestyksenvalvontakortti: data.has_jarjestyksenvalvontakortti,
+      notes: data.notes?.trim() || null,
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
       cancellation_token: crypto.randomUUID(),
@@ -307,6 +309,17 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   <p className="text-sm text-blue-800">{shift.notes}</p>
                 </div>
               )}
+
+              {/* Vapaa kommentti */}
+              <div>
+                <label className="label">Kommentti / lisätiedot</label>
+                <textarea
+                  {...register('notes')}
+                  className="input"
+                  rows={2}
+                  placeholder="Esim. Leivon mokkapaloja 2 peltiä"
+                />
+              </div>
 
               {/* Joukkueen valinta */}
               <div>

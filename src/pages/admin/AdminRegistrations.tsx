@@ -160,11 +160,12 @@ export default function AdminRegistrations() {
   }
 
   function exportCSV() {
-    const headers = ['Nimi', 'Sähköposti', 'Puhelin', 'Tapahtuma', 'Tehtävä', 'Vuoro', 'Status', 'Läsnä', 'Ilmoittautumisaika']
+    const headers = ['Nimi', 'Sähköposti', 'Puhelin', 'Kommentti', 'Tapahtuma', 'Tehtävä', 'Vuoro', 'Status', 'Läsnä', 'Ilmoittautumisaika']
     const rows = filtered.map(reg => [
       `${reg.first_name} ${reg.last_name}`,
       reg.email,
       reg.phone,
+      reg.notes ?? '',
       reg.shifts?.tasks?.events?.name ?? '',
       reg.shifts?.tasks?.name ?? '',
       reg.shifts ? `${format(new Date(reg.shifts.start_time), 'dd.MM.yyyy HH:mm')} - ${format(new Date(reg.shifts.end_time), 'HH:mm')}` : '',
@@ -315,6 +316,9 @@ export default function AdminRegistrations() {
                         <div className="font-medium text-gray-900">{reg.first_name} {reg.last_name}</div>
                         <div className="text-gray-500">{reg.email}</div>
                         <div className="text-gray-500">{reg.phone}</div>
+                        {reg.notes && (
+                          <div className="text-xs text-indigo-600 mt-1 italic">"{reg.notes}"</div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{reg.shifts?.tasks?.events?.name}</div>
