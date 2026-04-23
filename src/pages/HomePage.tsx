@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Event } from '../lib/database.types'
 import { Calendar, MapPin, ChevronRight, ArrowRight } from 'lucide-react'
@@ -38,12 +38,20 @@ export default function HomePage() {
             <h1 className="text-xl font-bold text-gray-900">Vuorovaraus</h1>
             <p className="text-sm text-gray-500">Ilmoittaudu vapaaehtoistapahtumiin</p>
           </div>
-          <a
-            href="/admin"
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            Hallintapaneeli →
-          </a>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/palaute"
+              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Palaute
+            </Link>
+            <a
+              href="/admin"
+              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Hallintapaneeli →
+            </a>
+          </div>
         </div>
       </header>
 
