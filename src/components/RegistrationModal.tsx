@@ -23,6 +23,7 @@ interface RegistrationForm {
   has_ea1: boolean
   has_ajokortti: boolean
   has_jarjestyksenvalvontakortti: boolean
+  shirt_size: string
   notes: string
   team_selection: string
   gdpr_accepted: boolean
@@ -45,6 +46,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: false,
       has_ajokortti: false,
       has_jarjestyksenvalvontakortti: false,
+      shirt_size: '',
       team_selection: shift.team_name || '',
       gdpr_accepted: false,
     }
@@ -105,6 +107,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_ea1: data.has_ea1,
       has_ajokortti: data.has_ajokortti,
       has_jarjestyksenvalvontakortti: data.has_jarjestyksenvalvontakortti,
+      shirt_size: task.requires_shirt_size ? data.shirt_size || null : null,
       notes: data.notes?.trim() || null,
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
@@ -302,6 +305,33 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   </label>
                 </div>
               </div>
+
+              {/* Paidan koko */}
+              {task.requires_shirt_size && (
+                <div>
+                  <label className="label">Paidan koko *</label>
+                  <div className="flex gap-2 mt-1 flex-wrap">
+                    {(['S', 'M', 'L', 'XL', 'XXL'] as const).map(size => (
+                      <label key={size} className="cursor-pointer">
+                        <input
+                          type="radio"
+                          value={size}
+                          {...register('shirt_size', {
+                            validate: v => !task.requires_shirt_size || !!v || 'Valitse paidan koko'
+                          })}
+                          className="sr-only peer"
+                        />
+                        <span className="inline-flex items-center justify-center w-12 h-10 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 hover:border-blue-400 transition-colors">
+                          {size}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.shirt_size && (
+                    <p className="text-red-500 text-sm mt-1">{errors.shirt_size.message}</p>
+                  )}
+                </div>
+              )}
 
               {shift.notes && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
