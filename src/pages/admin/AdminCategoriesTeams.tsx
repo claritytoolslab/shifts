@@ -14,6 +14,7 @@ interface TaskFormState {
   requires_ea1: boolean
   requires_ajokortti: boolean
   requires_jarjestyksenvalvontakortti: boolean
+  requires_shirt_size: boolean
   other_requirements: string
 }
 
@@ -163,6 +164,7 @@ export default function AdminCategoriesTeams() {
     requires_ea1: false,
     requires_ajokortti: false,
     requires_jarjestyksenvalvontakortti: false,
+    requires_shirt_size: false,
     other_requirements: '',
   })
 
@@ -304,6 +306,7 @@ export default function AdminCategoriesTeams() {
       requires_ea1: task.requires_ea1,
       requires_ajokortti: task.requires_ajokortti,
       requires_jarjestyksenvalvontakortti: task.requires_jarjestyksenvalvontakortti,
+      requires_shirt_size: task.requires_shirt_size,
       other_requirements: task.other_requirements ?? '',
     })
     setTaskFormErrors({})
@@ -332,6 +335,7 @@ export default function AdminCategoriesTeams() {
       requires_ea1: taskForm.requires_ea1,
       requires_ajokortti: taskForm.requires_ajokortti,
       requires_jarjestyksenvalvontakortti: taskForm.requires_jarjestyksenvalvontakortti,
+      requires_shirt_size: taskForm.requires_shirt_size,
       other_requirements: taskForm.other_requirements || null,
     }
 
@@ -695,6 +699,15 @@ export default function AdminCategoriesTeams() {
                         className="w-4 h-4 rounded border-gray-300"
                       />
                       Järjestyksenvalvontakortti
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={taskForm.requires_shirt_size}
+                        onChange={e => setTaskField('requires_shirt_size', e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                      Kerää paidan koko (S–XXL)
                     </label>
                   </div>
                 </div>

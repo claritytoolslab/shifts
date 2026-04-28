@@ -70,6 +70,7 @@ export interface Database {
           requires_ea1: boolean
           requires_ajokortti: boolean
           requires_jarjestyksenvalvontakortti: boolean
+          requires_shirt_size: boolean
           other_requirements: string | null
           category: string | null
           created_at: string
@@ -85,6 +86,7 @@ export interface Database {
           requires_ea1?: boolean
           requires_ajokortti?: boolean
           requires_jarjestyksenvalvontakortti?: boolean
+          requires_shirt_size?: boolean
           other_requirements?: string | null
           category?: string | null
           created_at?: string
@@ -100,6 +102,7 @@ export interface Database {
           requires_ea1?: boolean
           requires_ajokortti?: boolean
           requires_jarjestyksenvalvontakortti?: boolean
+          requires_shirt_size?: boolean
           other_requirements?: string | null
           category?: string | null
           updated_at?: string
@@ -262,6 +265,7 @@ export interface Database {
           has_ea1: boolean
           has_ajokortti: boolean
           has_jarjestyksenvalvontakortti: boolean
+          shirt_size: string | null
           notes: string | null
           status: string
           gdpr_accepted: boolean
@@ -282,6 +286,7 @@ export interface Database {
           has_ea1?: boolean
           has_ajokortti?: boolean
           has_jarjestyksenvalvontakortti?: boolean
+          shirt_size?: string | null
           notes?: string | null
           status?: string
           gdpr_accepted?: boolean

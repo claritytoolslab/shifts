@@ -25,6 +25,7 @@ CREATE TABLE tasks (
   requires_ea1 BOOLEAN DEFAULT false,
   requires_ajokortti BOOLEAN DEFAULT false,
   requires_jarjestyksenvalvontakortti BOOLEAN DEFAULT false,
+  requires_shirt_size BOOLEAN DEFAULT false,
   other_requirements TEXT,
   category TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -72,6 +73,7 @@ CREATE TABLE registrations (
   notes TEXT,
   cancellation_token UUID DEFAULT gen_random_uuid(),
   status TEXT DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled', 'waitlisted')),
+  shirt_size TEXT CHECK (shirt_size IN ('S', 'M', 'L', 'XL', 'XXL')),
   is_present BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
