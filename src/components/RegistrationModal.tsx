@@ -109,6 +109,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_jarjestyksenvalvontakortti: data.has_jarjestyksenvalvontakortti,
       shirt_size: task.requires_shirt_size ? data.shirt_size || null : null,
       notes: data.notes?.trim() || null,
+      team_selection: data.team_selection && data.team_selection !== 'no-team' ? data.team_selection : null,
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
       cancellation_token: crypto.randomUUID(),
