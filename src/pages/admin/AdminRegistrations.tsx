@@ -11,6 +11,7 @@ interface RegistrationWithDetails extends Registration {
     start_time: string
     end_time: string
     location: string | null
+    team_name: string | null
     tasks: {
       name: string
       events: {
@@ -20,7 +21,7 @@ interface RegistrationWithDetails extends Registration {
   }
 }
 
-type SortKey = 'name' | 'event' | 'task' | 'shift' | 'status' | 'location' | 'is_present' | 'created_at'
+type SortKey = 'name' | 'event' | 'task' | 'shift' | 'status' | 'location' | 'team' | 'is_present' | 'created_at'
 type SortDir = 'asc' | 'desc'
 
 export default function AdminRegistrations() {
@@ -49,6 +50,7 @@ export default function AdminRegistrations() {
           start_time,
           end_time,
           location,
+          team_name,
           tasks (
             name,
             events (
@@ -93,6 +95,7 @@ export default function AdminRegistrations() {
       case 'shift': return reg.shifts?.start_time ?? ''
       case 'status': return reg.status
       case 'location': return (reg.shifts?.location ?? '').toLowerCase()
+      case 'team': return (reg.shifts?.team_name ?? '').toLowerCase()
       case 'is_present': return reg.is_present ? 'z' : 'a' // z=present, a=not present (reverse alphabetical for desc)
       case 'created_at': return reg.created_at
     }
@@ -297,6 +300,9 @@ export default function AdminRegistrations() {
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('location')}>
                       <span className="inline-flex items-center gap-1">Sijainti <SortIcon column="location" /></span>
                     </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('team')}>
+                      <span className="inline-flex items-center gap-1">Joukkue <SortIcon column="team" /></span>
+                    </th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Pätevyydet</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('status')}>
                       <span className="inline-flex items-center gap-1">Tila <SortIcon column="status" /></span>
@@ -341,6 +347,9 @@ export default function AdminRegistrations() {
                       </td>
                       <td className="px-4 py-3 text-gray-700">
                         {reg.shifts?.location || '–'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {reg.shifts?.team_name || '–'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
