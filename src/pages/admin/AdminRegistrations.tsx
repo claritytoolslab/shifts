@@ -11,7 +11,6 @@ interface RegistrationWithDetails extends Registration {
     start_time: string
     end_time: string
     location: string | null
-    team_name: string | null
     tasks: {
       name: string
       events: {
@@ -51,7 +50,6 @@ export default function AdminRegistrations() {
           start_time,
           end_time,
           location,
-          team_name,
           tasks (
             name,
             events (
@@ -70,7 +68,7 @@ export default function AdminRegistrations() {
   const uniqueTasks = [...new Set(registrations.map(r => r.shifts?.tasks?.name).filter(Boolean))] as string[]
   const uniqueDates = [...new Set(registrations.map(r => r.shifts ? format(new Date(r.shifts.start_time), 'dd.MM.yyyy') : null).filter(Boolean))] as string[]
   const uniqueLocations = [...new Set(registrations.map(r => r.shifts?.location).filter(Boolean))] as string[]
-  const uniqueTeams = [...new Set(registrations.map(r => r.shifts?.team_name).filter(Boolean))].sort() as string[]
+  const uniqueTeams = [...new Set(registrations.map(r => r.team_selection).filter(Boolean))].sort() as string[]
 
   const filtered = registrations.filter(reg => {
     const matchSearch = search === '' || [
@@ -82,7 +80,7 @@ export default function AdminRegistrations() {
     const matchTask = taskFilter === 'all' || reg.shifts?.tasks?.name === taskFilter
     const matchDate = dateFilter === 'all' || (reg.shifts && format(new Date(reg.shifts.start_time), 'dd.MM.yyyy') === dateFilter)
     const matchLocation = locationFilter === 'all' || reg.shifts?.location === locationFilter
-    const matchTeam = teamFilter === 'all' || reg.shifts?.team_name === teamFilter
+    const matchTeam = teamFilter === 'all' || reg.team_selection === teamFilter
     const matchIsPresent = isPresentFilter === 'all' ||
       (isPresentFilter === 'present' && reg.is_present === true) ||
       (isPresentFilter === 'not_present' && reg.is_present === false)
@@ -98,7 +96,7 @@ export default function AdminRegistrations() {
       case 'shift': return reg.shifts?.start_time ?? ''
       case 'status': return reg.status
       case 'location': return (reg.shifts?.location ?? '').toLowerCase()
-      case 'team': return (reg.shifts?.team_name ?? '').toLowerCase()
+      case 'team': return (reg.team_selection ?? '').toLowerCase()
       case 'is_present': return reg.is_present ? 'z' : 'a' // z=present, a=not present (reverse alphabetical for desc)
       case 'created_at': return reg.created_at
     }
@@ -362,7 +360,7 @@ export default function AdminRegistrations() {
                         {reg.shifts?.location || '–'}
                       </td>
                       <td className="px-4 py-3 text-gray-700">
-                        {reg.shifts?.team_name || '–'}
+                        {reg.team_selection || '–'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">

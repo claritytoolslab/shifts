@@ -267,6 +267,7 @@ export interface Database {
           has_jarjestyksenvalvontakortti: boolean
           shirt_size: string | null
           notes: string | null
+          team_selection: string | null
           status: string
           gdpr_accepted: boolean
           is_under_13: boolean
@@ -288,6 +289,7 @@ export interface Database {
           has_jarjestyksenvalvontakortti?: boolean
           shirt_size?: string | null
           notes?: string | null
+          team_selection?: string | null
           status?: string
           gdpr_accepted?: boolean
           is_under_13?: boolean
