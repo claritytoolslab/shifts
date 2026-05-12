@@ -11,6 +11,7 @@ interface RegistrationWithDetails extends Registration {
     start_time: string
     end_time: string
     location: string | null
+    team_name: string | null
     tasks: {
       name: string
       events: {
@@ -20,7 +21,7 @@ interface RegistrationWithDetails extends Registration {
   }
 }
 
-type SortKey = 'name' | 'event' | 'task' | 'shift' | 'status' | 'location' | 'is_present' | 'created_at'
+type SortKey = 'name' | 'event' | 'task' | 'shift' | 'status' | 'location' | 'team' | 'is_present' | 'created_at'
 type SortDir = 'asc' | 'desc'
 
 export default function AdminRegistrations() {
@@ -32,6 +33,7 @@ export default function AdminRegistrations() {
   const [taskFilter, setTaskFilter] = useState<string>('all')
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [locationFilter, setLocationFilter] = useState<string>('all')
+  const [teamFilter, setTeamFilter] = useState<string>('all')
   const [isPresentFilter, setIsPresentFilter] = useState<string>('all')
   const [sortKey, setSortKey] = useState<SortKey>('created_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -49,6 +51,7 @@ export default function AdminRegistrations() {
           start_time,
           end_time,
           location,
+          team_name,
           tasks (
             name,
             events (
@@ -67,6 +70,7 @@ export default function AdminRegistrations() {
   const uniqueTasks = [...new Set(registrations.map(r => r.shifts?.tasks?.name).filter(Boolean))] as string[]
   const uniqueDates = [...new Set(registrations.map(r => r.shifts ? format(new Date(r.shifts.start_time), 'dd.MM.yyyy') : null).filter(Boolean))] as string[]
   const uniqueLocations = [...new Set(registrations.map(r => r.shifts?.location).filter(Boolean))] as string[]
+  const uniqueTeams = [...new Set(registrations.map(r => r.shifts?.team_name).filter(Boolean))].sort() as string[]
 
   const filtered = registrations.filter(reg => {
     const matchSearch = search === '' || [
@@ -78,11 +82,12 @@ export default function AdminRegistrations() {
     const matchTask = taskFilter === 'all' || reg.shifts?.tasks?.name === taskFilter
     const matchDate = dateFilter === 'all' || (reg.shifts && format(new Date(reg.shifts.start_time), 'dd.MM.yyyy') === dateFilter)
     const matchLocation = locationFilter === 'all' || reg.shifts?.location === locationFilter
+    const matchTeam = teamFilter === 'all' || reg.shifts?.team_name === teamFilter
     const matchIsPresent = isPresentFilter === 'all' ||
       (isPresentFilter === 'present' && reg.is_present === true) ||
       (isPresentFilter === 'not_present' && reg.is_present === false)
 
-    return matchSearch && matchStatus && matchEvent && matchTask && matchDate && matchLocation && matchIsPresent
+    return matchSearch && matchStatus && matchEvent && matchTask && matchDate && matchLocation && matchTeam && matchIsPresent
   })
 
   function getSortValue(reg: RegistrationWithDetails, key: SortKey): string {
@@ -93,6 +98,7 @@ export default function AdminRegistrations() {
       case 'shift': return reg.shifts?.start_time ?? ''
       case 'status': return reg.status
       case 'location': return (reg.shifts?.location ?? '').toLowerCase()
+      case 'team': return (reg.shifts?.team_name ?? '').toLowerCase()
       case 'is_present': return reg.is_present ? 'z' : 'a' // z=present, a=not present (reverse alphabetical for desc)
       case 'created_at': return reg.created_at
     }
@@ -261,6 +267,16 @@ export default function AdminRegistrations() {
             ))}
           </select>
           <select
+            value={teamFilter}
+            onChange={e => setTeamFilter(e.target.value)}
+            className="input w-auto"
+          >
+            <option value="all">Kaikki joukkueet</option>
+            {uniqueTeams.map(team => (
+              <option key={team} value={team}>{team}</option>
+            ))}
+          </select>
+          <select
             value={isPresentFilter}
             onChange={e => setIsPresentFilter(e.target.value)}
             className="input w-auto"
@@ -296,6 +312,9 @@ export default function AdminRegistrations() {
                     </th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('location')}>
                       <span className="inline-flex items-center gap-1">Sijainti <SortIcon column="location" /></span>
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('team')}>
+                      <span className="inline-flex items-center gap-1">Joukkue <SortIcon column="team" /></span>
                     </th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Pätevyydet</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600 cursor-pointer select-none" onClick={() => handleSort('status')}>
@@ -341,6 +360,9 @@ export default function AdminRegistrations() {
                       </td>
                       <td className="px-4 py-3 text-gray-700">
                         {reg.shifts?.location || '–'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {reg.shifts?.team_name || '–'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
