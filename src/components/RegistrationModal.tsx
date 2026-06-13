@@ -123,7 +123,10 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
 
     if (insertError || !insertedReg) {
       const errorMsg = insertError?.message || 'Tuntematon virhe'
-      setError(`Ilmoittautuminen epäonnistui: ${errorMsg}`)
+      const friendlyMsg = errorMsg.includes('Vuoro on täynnä')
+        ? 'Vuoro on täynnä — joku muu ehti ilmoittautua juuri ennen sinua. Valitse toinen vuoro.'
+        : `Ilmoittautuminen epäonnistui: ${errorMsg}`
+      setError(friendlyMsg)
       console.error(insertError)
     } else {
       setStep('success')

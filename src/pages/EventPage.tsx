@@ -263,10 +263,10 @@ export default function EventPage() {
                           </div>
                         )}
                         <div className={`flex items-center gap-1 text-xs font-medium mt-1 ml-5 ${
-                          shift.available_spots === 0 ? 'text-red-500' : 'text-green-600'
+                          shift.available_spots <= 0 ? 'text-red-500' : 'text-green-600'
                         }`}>
                           <Users size={12} />
-                          {shift.available_spots === 0
+                          {shift.available_spots <= 0
                             ? 'Täynnä'
                             : `${shift.available_spots} paikkaa vapaana`}
                           <span className="text-gray-400 font-normal">
@@ -277,14 +277,14 @@ export default function EventPage() {
 
                       <button
                         onClick={() => openRegistration(shift, task)}
-                        disabled={shift.available_spots === 0}
+                        disabled={shift.available_spots <= 0}
                         className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          shift.available_spots === 0
+                          shift.available_spots <= 0
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
                         }`}
                       >
-                        {shift.available_spots === 0 ? 'Täynnä' : 'Ilmoittaudu'}
+                        {shift.available_spots <= 0 ? 'Täynnä' : 'Ilmoittaudu'}
                       </button>
                     </div>
                   </div>
