@@ -6,6 +6,22 @@ import type { ShiftAvailability, Task, RegistrationInsert, Team } from '../lib/d
 import { X, CheckCircle, Clock, MapPin, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { fi } from 'date-fns/locale'
+import { FORM_CONFIG, type Qualification } from '../lib/branding'
+
+const QUALIFICATIONS: {
+  key: Qualification
+  label: string
+  error: string
+  badgeClass: string
+}[] = [
+  { key: 'pelinohjauskoulutus', label: 'Pelinohjauskoulutus', error: 'Tämä tehtävä vaatii Pelinohjauskoulutus-todistuksen.', badgeClass: 'bg-purple-100 text-purple-700' },
+  { key: 'ea1', label: 'EA1 (Ensiapu)', error: 'Tämä tehtävä vaatii EA1-ensiapukoulutuksen.', badgeClass: 'bg-red-100 text-red-700' },
+  { key: 'ajokortti', label: 'B-ajokortti + ajolupa', error: 'Tämä tehtävä vaatii B-ajokortin ja ajoluvan.', badgeClass: 'bg-blue-100 text-blue-700' },
+  { key: 'jarjestyksenvalvontakortti', label: 'Järjestyksenvalvontakortti', error: 'Tämä tehtävä vaatii järjestyksenvalvontakortin.', badgeClass: 'bg-orange-100 text-orange-700' },
+]
+
+// Vain tällä sivustolla käytössä olevat pätevyydet näytetään ja tarkistetaan
+const shownQualifications = QUALIFICATIONS.filter(q => FORM_CONFIG.qualifications.includes(q.key))
 
 interface Props {
   shift: ShiftAvailability
@@ -54,6 +70,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
 
   // Hae joukkueet
   useEffect(() => {
+    if (!FORM_CONFIG.showTeamSelection) return
     async function fetchTeams() {
       const { data } = await supabase
         .from('teams')
@@ -64,35 +81,17 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
     fetchTeams()
   }, [])
 
-  const hasRequirements =
-    task.requires_pelinohjauskoulutus ||
-    task.requires_ea1 ||
-    task.requires_ajokortti ||
-    task.requires_jarjestyksenvalvontakortti ||
-    !!task.other_requirements
+  const requiredQualifications = shownQualifications.filter(q => task[`requires_${q.key}`])
+  const hasRequirements = requiredQualifications.length > 0 || !!task.other_requirements
 
   async function onSubmit(data: RegistrationForm) {
     setSaving(true)
     setError('')
 
     // Tarkista pätevyydet
-    if (task.requires_pelinohjauskoulutus && !data.has_pelinohjauskoulutus) {
-      setError('Tämä tehtävä vaatii Pelinohjauskoulutus-todistuksen.')
-      setSaving(false)
-      return
-    }
-    if (task.requires_ea1 && !data.has_ea1) {
-      setError('Tämä tehtävä vaatii EA1-ensiapukoulutuksen.')
-      setSaving(false)
-      return
-    }
-    if (task.requires_ajokortti && !data.has_ajokortti) {
-      setError('Tämä tehtävä vaatii B-ajokortin ja ajoluvan.')
-      setSaving(false)
-      return
-    }
-    if (task.requires_jarjestyksenvalvontakortti && !data.has_jarjestyksenvalvontakortti) {
-      setError('Tämä tehtävä vaatii järjestyksenvalvontakortin.')
+    const missing = requiredQualifications.find(q => !data[`has_${q.key}`])
+    if (missing) {
+      setError(missing.error)
       setSaving(false)
       return
     }
@@ -113,7 +112,9 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       has_jarjestyksenvalvontakortti: data.has_jarjestyksenvalvontakortti,
       shirt_size: task.requires_shirt_size ? data.shirt_size || null : null,
       notes: data.notes?.trim() || null,
-      team_selection: data.team_selection && data.team_selection !== 'no-team' ? data.team_selection : null,
+      team_selection: FORM_CONFIG.showTeamSelection
+        ? (data.team_selection && data.team_selection !== 'no-team' ? data.team_selection : null)
+        : shift.team_name || null,
       status: 'confirmed',
       gdpr_accepted: data.gdpr_accepted,
       cancellation_token: crypto.randomUUID(),
@@ -206,10 +207,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                     Tehtävä vaatii pätevyyksiä
                   </div>
                   <ul className="text-sm text-amber-600 space-y-1">
-                    {task.requires_pelinohjauskoulutus && <li>• Pelinohjauskoulutus</li>}
-                    {task.requires_ea1 && <li>• EA1 (Ensiapu)</li>}
-                    {task.requires_ajokortti && <li>• B-ajokortti + ajolupa</li>}
-                    {task.requires_jarjestyksenvalvontakortti && <li>• Järjestyksenvalvontakortti</li>}
+                    {requiredQualifications.map(q => <li key={q.key}>• {q.label}</li>)}
                     {task.other_requirements && <li>• {task.other_requirements}</li>}
                   </ul>
                 </div>
@@ -262,55 +260,26 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
               </div>
 
               {/* Pätevyydet */}
-              <div>
-                <label className="label">Pätevyydet ja kortit (rasti mitä sinulla on)</label>
-                <div className="space-y-2 mt-1">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      {...register('has_pelinohjauskoulutus')}
-                      className="w-4 h-4 rounded border-gray-300"
-                    />
-                    <span>Pelinohjauskoulutus</span>
-                    {task.requires_pelinohjauskoulutus && (
-                      <span className="text-xs bg-purple-100 text-purple-700 px-1.5 rounded">Vaaditaan</span>
-                    )}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      {...register('has_ea1')}
-                      className="w-4 h-4 rounded border-gray-300"
-                    />
-                    <span>EA1 (Ensiapu)</span>
-                    {task.requires_ea1 && (
-                      <span className="text-xs bg-red-100 text-red-700 px-1.5 rounded">Vaaditaan</span>
-                    )}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      {...register('has_ajokortti')}
-                      className="w-4 h-4 rounded border-gray-300"
-                    />
-                    <span>B-ajokortti + ajolupa</span>
-                    {task.requires_ajokortti && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-1.5 rounded">Vaaditaan</span>
-                    )}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      {...register('has_jarjestyksenvalvontakortti')}
-                      className="w-4 h-4 rounded border-gray-300"
-                    />
-                    <span>Järjestyksenvalvontakortti</span>
-                    {task.requires_jarjestyksenvalvontakortti && (
-                      <span className="text-xs bg-orange-100 text-orange-700 px-1.5 rounded">Vaaditaan</span>
-                    )}
-                  </label>
+              {shownQualifications.length > 0 && (
+                <div>
+                  <label className="label">Pätevyydet ja kortit (rasti mitä sinulla on)</label>
+                  <div className="space-y-2 mt-1">
+                    {shownQualifications.map(q => (
+                      <label key={q.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          {...register(`has_${q.key}`)}
+                          className="w-4 h-4 rounded border-gray-300"
+                        />
+                        <span>{q.label}</span>
+                        {task[`requires_${q.key}`] && (
+                          <span className={`text-xs px-1.5 rounded ${q.badgeClass}`}>Vaaditaan</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Paidan koko */}
               {task.requires_shirt_size && (
@@ -353,29 +322,31 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   {...register('notes')}
                   className="input"
                   rows={2}
-                  placeholder="Esim. Leivon mokkapaloja 2 peltiä"
+                  placeholder={FORM_CONFIG.notesPlaceholder}
                 />
               </div>
 
               {/* Joukkueen valinta */}
-              <div>
-                <label className="label">Joukkue *</label>
-                <select
-                  {...register('team_selection', {
-                    required: 'Joukkue on pakollinen'
-                  })}
-                  className="input"
-                >
-                  <option value="">Valitse joukkue...</option>
-                  <option value="no-team">Ei joukkuetta (yleinen)</option>
-                  {teams.map(team => (
-                    <option key={team.id} value={team.name}>
-                      {team.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.team_selection && <p className="text-red-500 text-sm mt-1">{errors.team_selection.message}</p>}
-              </div>
+              {FORM_CONFIG.showTeamSelection && (
+                <div>
+                  <label className="label">Joukkue *</label>
+                  <select
+                    {...register('team_selection', {
+                      required: 'Joukkue on pakollinen'
+                    })}
+                    className="input"
+                  >
+                    <option value="">Valitse joukkue...</option>
+                    <option value="no-team">Ei joukkuetta (yleinen)</option>
+                    {teams.map(team => (
+                      <option key={team.id} value={team.name}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.team_selection && <p className="text-red-500 text-sm mt-1">{errors.team_selection.message}</p>}
+                </div>
+              )}
 
               {/* GDPR */}
               <div className="border-t pt-4">
@@ -400,23 +371,25 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                 )}
               </div>
 
-              <div className="border-t pt-4">
-                <label className="flex items-start gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    {...register('confirm_requirements', {
-                      required: 'Sinun täytyy vahvistaa tiedot'
-                    })}
-                    className="w-4 h-4 rounded border-gray-300 mt-0.5"
-                  />
-                  <span className="text-gray-600">
-                    Vahvistan, että antamani tiedot ovat oikeat ja minulla on tehtävässä vaaditut pätevyydet.
-                  </span>
-                </label>
-                {errors.confirm_requirements && (
-                  <p className="text-red-500 text-sm mt-1">{errors.confirm_requirements.message}</p>
-                )}
-              </div>
+              {FORM_CONFIG.showConfirmCheckbox && (
+                <div className="border-t pt-4">
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      {...register('confirm_requirements', {
+                        required: 'Sinun täytyy vahvistaa tiedot'
+                      })}
+                      className="w-4 h-4 rounded border-gray-300 mt-0.5"
+                    />
+                    <span className="text-gray-600">
+                      Vahvistan, että antamani tiedot ovat oikeat ja minulla on tehtävässä vaaditut pätevyydet.
+                    </span>
+                  </label>
+                  {errors.confirm_requirements && (
+                    <p className="text-red-500 text-sm mt-1">{errors.confirm_requirements.message}</p>
+                  )}
+                </div>
+              )}
 
               {error && (
                 <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
