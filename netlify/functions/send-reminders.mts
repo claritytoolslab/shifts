@@ -143,7 +143,7 @@ export const handler: Handler = async () => {
 
       if (!registrations || registrations.length === 0) continue
 
-      const senderName = eventData.sender_name || 'Varauslista'
+      const senderName = eventData.sender_name || process.env.VITE_APP_NAME || 'Varauslista'
 
       for (const reg of registrations) {
         // Tarkista ettei muistutusta ole jo lähetetty

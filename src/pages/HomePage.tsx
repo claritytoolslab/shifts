@@ -5,6 +5,7 @@ import type { Event } from '../lib/database.types'
 import { Calendar, MapPin, ChevronRight, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { fi } from 'date-fns/locale'
+import { APP_NAME } from '../lib/branding'
 
 export default function HomePage() {
   const [events, setEvents] = useState<Event[]>([])
@@ -35,7 +36,7 @@ export default function HomePage() {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Vuorovaraus</h1>
+            <h1 className="text-xl font-bold text-gray-900">{APP_NAME}</h1>
             <p className="text-sm text-gray-500">Ilmoittaudu vapaaehtoistapahtumiin</p>
           </div>
           <a

@@ -160,7 +160,7 @@ export const handler: Handler = async (event) => {
     }
 
     const cancelUrl = `${siteUrl}/.netlify/functions/cancel-registration?token=${reg.cancellation_token}`
-    const senderName = eventData.sender_name || 'Varauslista'
+    const senderName = eventData.sender_name || process.env.VITE_APP_NAME || 'Varauslista'
     const baseSubject = eventData.confirmation_email_subject || `Ilmoittautumisesi on vahvistettu – ${eventData.name}`
     const subject = `${baseSubject} – ${task.name}, ${formatDate(shift.start_time).split(' klo')[0]}`
 

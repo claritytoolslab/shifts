@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Calendar, Users, LogOut, LayoutDashboard, Menu, X, Tags, ExternalLink } from 'lucide-react'
+import { APP_NAME } from '../lib/branding'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { signOut, user } = useAuth()
@@ -73,7 +74,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           <Menu size={22} />
         </button>
-        <span className="font-bold text-gray-900">Vuorovaraus</span>
+        <span className="font-bold text-gray-900">{APP_NAME}</span>
       </header>
 
       {/* Mobiili sidebar overlay */}
@@ -88,7 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <aside className="relative z-50 w-64 bg-white flex flex-col shadow-xl">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Vuorovaraus</h1>
+                <h1 className="text-lg font-bold text-gray-900">{APP_NAME}</h1>
                 <p className="text-xs text-gray-500">Hallintapaneeli</p>
               </div>
               <button
@@ -107,7 +108,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="hidden lg:flex min-h-screen">
         <aside className="w-64 bg-white border-r border-gray-200 flex flex-col fixed top-0 bottom-0">
           <div className="p-6 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">Vuorovaraus</h1>
+            <h1 className="text-xl font-bold text-gray-900">{APP_NAME}</h1>
             <p className="text-sm text-gray-500 mt-1">Hallintapaneeli</p>
           </div>
           <SidebarContent />

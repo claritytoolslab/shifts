@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useAuth } from '../../contexts/AuthContext'
 import { Lock, Mail } from 'lucide-react'
+import { APP_NAME } from '../../lib/branding'
 
 interface LoginForm {
   email: string
@@ -37,7 +38,7 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Vuorovaraus</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{APP_NAME}</h1>
           <p className="text-gray-500 mt-2">Kirjaudu hallintapaneeliin</p>
         </div>
 

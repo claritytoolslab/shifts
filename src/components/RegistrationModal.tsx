@@ -97,7 +97,11 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       return
     }
 
+    // Id luodaan selaimessa, jotta insertin jälkeen ei tarvitse lukea riviä takaisin
+    // (anonyymeillä ei ole lukuoikeutta ilmoittautumisiin).
+    const registrationId = crypto.randomUUID()
     const payload: RegistrationInsert = {
+      id: registrationId,
       shift_id: shift.shift_id,
       first_name: data.first_name.trim(),
       last_name: data.last_name.trim(),
@@ -115,13 +119,11 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       cancellation_token: crypto.randomUUID(),
     }
 
-    const { data: insertedReg, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from('registrations')
       .insert(payload)
-      .select('id')
-      .single()
 
-    if (insertError || !insertedReg) {
+    if (insertError) {
       const errorMsg = insertError?.message || 'Tuntematon virhe'
       const friendlyMsg = errorMsg.includes('Vuoro on täynnä')
         ? 'Vuoro on täynnä — joku muu ehti ilmoittautua juuri ennen sinua. Valitse toinen vuoro.'
@@ -134,7 +136,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
       fetch('/.netlify/functions/send-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ registrationId: insertedReg.id }),
+        body: JSON.stringify({ registrationId }),
       }).catch(() => {})
     }
     setSaving(false)

@@ -24,15 +24,22 @@ Täysimittainen vapaaehtoistoimijoiden vuorovaraussovellus.
 ### 1. Supabase-projektin luonti
 
 1. Mene [supabase.com](https://supabase.com) ja luo uusi projekti
-2. Aja `supabase-schema.sql` SQL Editorissa
-3. Kopioi projektin URL ja anon-avain
+2. Aja `supabase/schema.sql` SQL Editorissa (koko ajantasainen skeema: taulut, näkymä, ylibuukkauksen esto ja RLS)
+3. Kopioi projektin URL, anon-avain ja service role -avain
+
+> Juuren `supabase-schema.sql` ja `supabase-migration-*.sql` ovat vanhoja migraatioita olemassa olevalle kannalle. Uuteen projektiin käytä `supabase/schema.sql`-tiedostoa.
 
 ### 2. Ympäristömuuttujat
 
 Kopioi `.env.example` → `.env.local` ja täytä:
 ```
+VITE_APP_NAME=Vuorovaraus          # Sivuston nimi otsikoissa ja sähköpostien oletuslähettäjänä
 VITE_SUPABASE_URL=https://xxxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Netlify-funktioille (sähköpostit, peruutus)
+BREVO_API_KEY=...
+BREVO_SENDER_EMAIL=noreply@...
+SITE_URL=https://sivusto.netlify.app
 ```
 
 ### 3. Paikallinen kehitys
@@ -56,6 +63,18 @@ Luo käyttäjä Supabase-konsolissa:
 ```sql
 -- Luo admin-käyttäjä Supabase Authenticationin kautta
 ```
+
+## Uuden yhdistyksen käyttöönotto
+
+Jokaisella yhdistyksellä on sama koodi, mutta oma Supabase-projekti (oma data ja admin-tunnukset) ja oma Netlify-sivusto.
+
+1. Luo yhdistykselle Supabase-projekti ja aja siinä `supabase/schema.sql`.
+2. Luo admin-käyttäjät: Authentication → Users → Add user.
+3. Netlifyssä: Add new site → Import from GitHub → tämä repo.
+4. Aseta sivuston ympäristömuuttujat yhdistyksen omilla arvoilla (ks. yllä), esim. `VITE_APP_NAME=Kotko`.
+5. Supabase → Authentication → URL Configuration: Site URL = sivuston osoite.
+
+Koodimuutokset päivittyvät kaikille sivustoille, kun ne deployataan samasta haarasta.
 
 ## Teknologiat
 
