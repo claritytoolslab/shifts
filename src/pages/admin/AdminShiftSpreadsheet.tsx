@@ -53,6 +53,31 @@ interface ShiftRow {
   confirmedCount: number
 }
 
+type MasterField = Exclude<keyof ShiftRow, '_id' | '_status' | '_error' | 'confirmedCount'>
+
+// Päivittää yhden kentän ja varmistaa, ettei loppuaika jää alkuajan taakse
+function applyField(r: ShiftRow, field: keyof ShiftRow, value: string): ShiftRow {
+  const updated = { ...r, [field]: value }
+  if (r._status === 'saved') updated._status = 'dirty'
+
+  const isStartField = field === 'startDay' || field === 'startHour' || field === 'startMinute'
+  if (isStartField) {
+    if (updated.endDay < updated.startDay) {
+      updated.endDay = updated.startDay
+    }
+    if (updated.endDay === updated.startDay) {
+      if (updated.endHour < updated.startHour) {
+        updated.endHour = updated.startHour
+      }
+      if (updated.endHour === updated.startHour && updated.endMinute < updated.startMinute) {
+        updated.endMinute = updated.startMinute
+      }
+    }
+  }
+
+  return updated
+}
+
 let tempIdCounter = 0
 function tempId() {
   return `__new_${++tempIdCounter}`
@@ -93,6 +118,11 @@ export default function AdminShiftSpreadsheet() {
   const [creatingTask, setCreatingTask] = useState<string | null>(null) // row _id
   const [creatingTeam, setCreatingTeam] = useState<string | null>(null)
   const [newItemName, setNewItemName] = useState('')
+
+  // Master-rivin valinnat ('' = ei muutosta)
+  const [master, setMaster] = useState<Partial<Record<MasterField, string>>>({})
+  const [masterMax, setMasterMax] = useState('')
+  const [masterNotes, setMasterNotes] = useState('')
 
   const eventDays = useMemo(() => {
     if (event?.start_date && event?.end_date) {
@@ -182,29 +212,27 @@ export default function AdminShiftSpreadsheet() {
   }
 
   function updateRow(id: string, field: keyof ShiftRow, value: string) {
+    setRows(prev => prev.map(r => r._id === id ? applyField(r, field, value) : r))
+  }
+
+  // Master-rivi: asettaa saman arvon kaikille suodatuksen läpäiseville riveille
+  function applyToFiltered(changes: Partial<Record<MasterField, string>>) {
+    const ids = new Set(filteredRows.map(r => r._id))
     setRows(prev => prev.map(r => {
-      if (r._id !== id) return r
-      const updated = { ...r, [field]: value }
-      if (r._status === 'saved') updated._status = 'dirty'
-
-      // Kun alkuaikaa muutetaan, varmista ettei loppu jää taakse
-      const isStartField = field === 'startDay' || field === 'startHour' || field === 'startMinute'
-      if (isStartField) {
-        if (updated.endDay < updated.startDay) {
-          updated.endDay = updated.startDay
-        }
-        if (updated.endDay === updated.startDay) {
-          if (updated.endHour < updated.startHour) {
-            updated.endHour = updated.startHour
-          }
-          if (updated.endHour === updated.startHour && updated.endMinute < updated.startMinute) {
-            updated.endMinute = updated.startMinute
-          }
-        }
-      }
-
-      return updated
+      if (!ids.has(r._id)) return r
+      return (Object.entries(changes) as [MasterField, string][])
+        .reduce((acc, [field, value]) => applyField(acc, field, value), r)
     }))
+  }
+
+  function setMasterField(field: MasterField, value: string, changes: Partial<Record<MasterField, string>>) {
+    setMaster(m => ({ ...m, [field]: value }))
+    applyToFiltered(changes)
+  }
+
+  async function saveAll() {
+    const pending = rows.filter(r => r._status === 'new' || r._status === 'dirty' || r._status === 'error')
+    await Promise.all(pending.map(r => saveRow(r._id)))
   }
 
   function getEndDays(row: ShiftRow) {
@@ -400,6 +428,10 @@ export default function AdminShiftSpreadsheet() {
     )
   }
 
+  const pendingCount = rows.filter(r => r._status === 'new' || r._status === 'dirty' || r._status === 'error').length
+  const masterSelect = 'w-full border border-blue-200 bg-white rounded px-1 py-1 text-sm focus:border-blue-400 outline-none'
+  const masterTime = 'border border-blue-200 bg-white rounded px-1 py-1 text-sm w-14 focus:border-blue-400 outline-none'
+
   const content = (
     <div>
       {/* Otsikko */}
@@ -481,6 +513,12 @@ export default function AdminShiftSpreadsheet() {
             </button>
           )}
           <span className="text-xs text-gray-400 ml-auto">{filteredRows.length} / {rows.length} vuoroa</span>
+          {pendingCount > 0 && (
+            <button onClick={saveAll} className="btn-primary flex items-center gap-2 text-sm">
+              <Save size={15} />
+              Tallenna kaikki ({pendingCount})
+            </button>
+          )}
         </div>
 
         {/* Taulukko */}
@@ -516,6 +554,113 @@ export default function AdminShiftSpreadsheet() {
               </tr>
             </thead>
             <tbody>
+              {/* Master-rivi: muuttaa kaikki näkyvät vuorot kerralla */}
+              {filteredRows.length > 0 && (
+                <tr className="bg-blue-50 border-b-2 border-blue-200 border-l-4 border-l-blue-500">
+                  <td className="px-2 py-1.5">
+                    <div className="text-xs font-semibold text-blue-700 mb-1">
+                      Kaikille näkyville ({filteredRows.length}) ↓
+                    </div>
+                    <select
+                      value={master.taskId ?? ''}
+                      onChange={e => e.target.value && setMasterField('taskId', e.target.value, { taskId: e.target.value })}
+                      className={masterSelect}
+                    >
+                      <option value="">— ei muutosta —</option>
+                      {tasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-2 py-1.5 align-bottom">
+                    <select
+                      value={master.teamName ?? ''}
+                      onChange={e => e.target.value && setMasterField('teamName', e.target.value, {
+                        teamName: e.target.value === '__general__' ? '' : e.target.value,
+                      })}
+                      className={masterSelect}
+                    >
+                      <option value="">— ei muutosta —</option>
+                      <option value="__general__">Yleinen</option>
+                      {teams.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                    </select>
+                  </td>
+                  {(['start', 'end'] as const).map(prefix => (
+                    <td key={prefix} className="px-2 py-1.5 align-bottom">
+                      <div className="flex gap-1">
+                        <select
+                          value={master[`${prefix}Day`] ?? ''}
+                          onChange={e => e.target.value && setMasterField(`${prefix}Day`, e.target.value, { [`${prefix}Day`]: e.target.value })}
+                          className="border border-blue-200 bg-white rounded px-1 py-1 text-sm focus:border-blue-400 outline-none"
+                        >
+                          <option value="">—</option>
+                          {eventDays.map(d => (
+                            <option key={d} value={d}>{format(parseISO(d), 'EEE d.M.', { locale: fi })}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={master[`${prefix}Hour`] ?? ''}
+                          onChange={e => e.target.value && setMasterField(`${prefix}Hour`, e.target.value, { [`${prefix}Hour`]: e.target.value })}
+                          className={masterTime}
+                        >
+                          <option value="">—</option>
+                          {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+                        </select>
+                        <select
+                          value={master[`${prefix}Minute`] ?? ''}
+                          onChange={e => e.target.value && setMasterField(`${prefix}Minute`, e.target.value, { [`${prefix}Minute`]: e.target.value })}
+                          className={masterTime}
+                        >
+                          <option value="">—</option>
+                          {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                    </td>
+                  ))}
+                  <td className="px-2 py-1.5 align-bottom">
+                    <input
+                      type="number"
+                      min={1}
+                      value={masterMax}
+                      onChange={e => setMasterMax(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && masterMax) applyToFiltered({ maxParticipants: masterMax }) }}
+                      onBlur={() => { if (masterMax) applyToFiltered({ maxParticipants: masterMax }) }}
+                      className="w-16 border border-blue-200 bg-white rounded px-1.5 py-1 text-sm focus:border-blue-400 outline-none"
+                      placeholder="—"
+                    />
+                  </td>
+                  <td className="px-2 py-1.5 align-bottom">
+                    <select
+                      value={master.location ?? ''}
+                      onChange={e => {
+                        const locName = e.target.value
+                        if (!locName) return
+                        const loc = locations.find(l => l.name === locName)
+                        setMasterField('location', locName, { location: locName, locationId: loc?.id ?? '' })
+                      }}
+                      className={masterSelect}
+                    >
+                      <option value="">— ei muutosta —</option>
+                      {locations.map(loc => <option key={loc.id} value={loc.name}>{loc.name}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-2 py-1.5 align-bottom">
+                    <input
+                      value={masterNotes}
+                      onChange={e => setMasterNotes(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') applyToFiltered({ notes: masterNotes }) }}
+                      className="w-full border border-blue-200 bg-white rounded px-1.5 py-1 text-sm focus:border-blue-400 outline-none"
+                      placeholder="Lisätiedot + Enter"
+                    />
+                  </td>
+                  <td className="px-2 py-1.5 align-bottom" colSpan={2}>
+                    <button
+                      onClick={() => { setMaster({}); setMasterMax(''); setMasterNotes('') }}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Tyhjennä
+                    </button>
+                  </td>
+                </tr>
+              )}
               {filteredRows.map(row => (
                 <tr
                   key={row._id}
