@@ -22,14 +22,11 @@ function getDaysBetween(start: string, end: string): string[] {
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
 const MINUTES = ['00', '15', '30', '45']
 
-// Hae selaimen aikavyöhykkeen offset muodossa +HH:MM tai -HH:MM
-function getTimezoneOffsetString(): string {
-  const offset = new Date().getTimezoneOffset() // minuuteissa, esim -180 UTC+3:lle
-  const sign = offset <= 0 ? '+' : '-'
-  const absOffset = Math.abs(offset)
-  const hours = String(Math.floor(absOffset / 60)).padStart(2, '0')
-  const mins = String(absOffset % 60).padStart(2, '0')
-  return `${sign}${hours}:${mins}`
+// Muuntaa paikallisen päivän ja kellonajan UTC-aikaleimaksi. Offset lasketaan
+// kyseisen päivän mukaan, jotta kesä- ja talviaika menevät oikein.
+function localToIso(day: string, hour: string, minute: string): string {
+  const [y, m, d] = day.split('-').map(Number)
+  return new Date(y, m - 1, d, Number(hour), Number(minute)).toISOString()
 }
 
 type RowStatus = 'saved' | 'dirty' | 'new' | 'saving' | 'error'
@@ -272,9 +269,8 @@ export default function AdminShiftSpreadsheet() {
       return
     }
 
-    const tzOffset = getTimezoneOffsetString()
-    const startTime = `${row.startDay}T${row.startHour}:${row.startMinute}:00${tzOffset}`
-    const endTime = `${row.endDay}T${row.endHour}:${row.endMinute}:00${tzOffset}`
+    const startTime = localToIso(row.startDay, row.startHour, row.startMinute)
+    const endTime = localToIso(row.endDay, row.endHour, row.endMinute)
     if (startTime >= endTime) {
       setRows(prev => prev.map(r => r._id === id ? { ...r, _status: 'error' as RowStatus, _error: 'Loppu ennen alkua' } : r))
       return
