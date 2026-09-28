@@ -7,7 +7,7 @@
 -- ============================================================
 
 -- Tapahtumat
-CREATE TABLE events (
+CREATE TABLE public.events (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -23,9 +23,10 @@ CREATE TABLE events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
 -- Tehtävät
-CREATE TABLE tasks (
+CREATE TABLE public.tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -41,9 +42,10 @@ CREATE TABLE tasks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
 -- Sijainnit (tapahtumakohtaiset)
-CREATE TABLE locations (
+CREATE TABLE public.locations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   name TEXT NOT NULL DEFAULT '',
@@ -52,9 +54,10 @@ CREATE TABLE locations (
   number TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 
 -- Vuorot (team_name = null → yleinen, muuten joukkuekohtainen)
-CREATE TABLE shifts (
+CREATE TABLE public.shifts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   team_name TEXT,
@@ -68,22 +71,25 @@ CREATE TABLE shifts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
 
 -- Kategoriat ja joukkueet (globaalit listat)
-CREATE TABLE categories (
+CREATE TABLE public.categories (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 
-CREATE TABLE teams (
+CREATE TABLE public.teams (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 
 -- Ilmoittautumiset
-CREATE TABLE registrations (
+CREATE TABLE public.registrations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   shift_id UUID NOT NULL REFERENCES shifts(id) ON DELETE CASCADE,
   first_name TEXT NOT NULL,
@@ -94,10 +100,10 @@ CREATE TABLE registrations (
   has_ea1 BOOLEAN NOT NULL DEFAULT false,
   has_ajokortti BOOLEAN NOT NULL DEFAULT false,
   has_jarjestyksenvalvontakortti BOOLEAN NOT NULL DEFAULT false,
-  shirt_size TEXT CHECK (shirt_size IN ('S', 'M', 'L', 'XL', 'XXL')),
+  shirt_size TEXT,
   notes TEXT,
   team_selection TEXT,
-  status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled', 'waitlisted')),
+  status TEXT NOT NULL DEFAULT 'confirmed',
   gdpr_accepted BOOLEAN NOT NULL DEFAULT false,
   is_under_13 BOOLEAN NOT NULL DEFAULT false,
   guardian_phone TEXT,
@@ -105,9 +111,14 @@ CREATE TABLE registrations (
   cancellation_token UUID NOT NULL DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.registrations ADD CONSTRAINT registrations_shirt_size_check
+  CHECK (shirt_size IN ('S', 'M', 'L', 'XL', 'XXL'));
+ALTER TABLE public.registrations ADD CONSTRAINT registrations_status_check
+  CHECK (status IN ('confirmed', 'cancelled', 'waitlisted'));
 
 -- Sähköpostijono (vahvistukset ja muistutukset)
-CREATE TABLE email_queue (
+CREATE TABLE public.email_queue (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   registration_id UUID NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
   to_email TEXT NOT NULL,
@@ -119,6 +130,7 @@ CREATE TABLE email_queue (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   sent_at TIMESTAMPTZ
 );
+ALTER TABLE public.email_queue ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- Indeksit
@@ -198,15 +210,6 @@ EXECUTE FUNCTION prevent_overbooking();
 -- Kirjautunut admin: täydet oikeudet. Netlify-funktiot käyttävät
 -- service role -avainta, joka ohittaa RLS:n.
 -- ============================================================
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE email_queue ENABLE ROW LEVEL SECURITY;
-
 -- Julkinen luku
 CREATE POLICY "Public can view active events" ON events
   FOR SELECT USING (is_active = true);
