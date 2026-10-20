@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
+import { escapeHtml } from '../lib/escape'
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL ?? ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
@@ -120,6 +121,48 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    // Funktio on julkinen (lomake kutsuu sitä ilmoittautumisen jälkeen), joten
+    // ilman admin-kirjautumista vahvistus lähetetään vain kerran ja vain
+    // tuoreelle ilmoittautumiselle. Uudelleenlähetys vaatii adminin.
+    const authHeader = event.headers.authorization ?? event.headers.Authorization ?? ''
+    const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+    let isAdmin = false
+    if (accessToken) {
+      const { data: userData } = await supabase.auth.getUser(accessToken)
+      isAdmin = !!userData?.user
+    }
+
+    if (!isAdmin) {
+      if (queueId) {
+        return {
+          statusCode: 401,
+          body: JSON.stringify({ error: 'Uudelleenlähetys vaatii kirjautumisen' }),
+        }
+      }
+
+      const ageMs = Date.now() - new Date(reg.created_at).getTime()
+      if (ageMs > 15 * 60 * 1000) {
+        return {
+          statusCode: 403,
+          body: JSON.stringify({ error: 'Vahvistuksen voi lähettää vain heti ilmoittautumisen jälkeen' }),
+        }
+      }
+
+      const { data: existing } = await supabase
+        .from('email_queue')
+        .select('id')
+        .eq('registration_id', registrationId)
+        .not('subject', 'like', 'Muistutus%')
+        .limit(1)
+
+      if (existing && existing.length > 0) {
+        return {
+          statusCode: 409,
+          body: JSON.stringify({ error: 'Vahvistus on jo lähetetty' }),
+        }
+      }
+    }
+
     const { data: shift } = await supabase
       .from('shifts')
       .select('*')
@@ -165,14 +208,14 @@ export const handler: Handler = async (event) => {
     const subject = `${baseSubject} – ${task.name}, ${formatDate(shift.start_time).split(' klo')[0]}`
 
     const htmlBody = buildDefaultHtml({
-      firstName: reg.first_name,
-      eventName: eventData.name,
-      taskName: task.name,
+      firstName: escapeHtml(reg.first_name),
+      eventName: escapeHtml(eventData.name),
+      taskName: escapeHtml(task.name),
       shiftStart: formatDate(shift.start_time),
       shiftEnd: formatDate(shift.end_time),
-      location: shift.location,
-      shiftNotes: shift.notes,
-      taskDescription: task.description,
+      location: shift.location ? escapeHtml(shift.location) : null,
+      shiftNotes: shift.notes ? escapeHtml(shift.notes) : null,
+      taskDescription: task.description ? escapeHtml(task.description) : null,
       cancelUrl,
       customMessage: eventData.confirmation_email_body,
     })

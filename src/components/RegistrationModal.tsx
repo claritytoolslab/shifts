@@ -218,6 +218,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   <label className="label">Etunimi *</label>
                   <input
                     {...register('first_name', { required: 'Etunimi on pakollinen' })}
+                    maxLength={100}
                     className="input"
                     placeholder="Matti"
                   />
@@ -227,6 +228,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                   <label className="label">Sukunimi *</label>
                   <input
                     {...register('last_name', { required: 'Sukunimi on pakollinen' })}
+                    maxLength={100}
                     className="input"
                     placeholder="Meikäläinen"
                   />
@@ -242,6 +244,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                     required: 'Sähköposti on pakollinen',
                     pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Virheellinen sähköpostiosoite' }
                   })}
+                  maxLength={254}
                   className="input"
                   placeholder="matti@esimerkki.fi"
                 />
@@ -253,6 +256,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                 <input
                   type="tel"
                   {...register('phone', { required: 'Puhelinnumero on pakollinen' })}
+                  maxLength={40}
                   className="input"
                   placeholder="+358 40 123 4567"
                 />
@@ -320,6 +324,7 @@ export default function RegistrationModal({ shift, task, onClose, onSuccess }: P
                 <label className="label">Kommentti / lisätiedot</label>
                 <textarea
                   {...register('notes')}
+                  maxLength={1000}
                   className="input"
                   rows={2}
                   placeholder={FORM_CONFIG.notesPlaceholder}

@@ -1,10 +1,18 @@
 import type { Handler } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
+import { escapeHtml } from '../lib/escape'
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL ?? ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+// Sivulla ei ole skriptejä: CSP estää kaiken muun kuin inline-tyylit
+const headers = {
+  'Content-Type': 'text/html; charset=utf-8',
+  'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  'X-Content-Type-Options': 'nosniff',
+}
 
 function htmlPage(title: string, message: string, success: boolean): string {
   const color = success ? '#16a34a' : '#dc2626'
@@ -39,7 +47,7 @@ export const handler: Handler = async (event) => {
   if (!token) {
     return {
       statusCode: 400,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      headers,
       body: htmlPage('Virhe', 'Peruutustunniste puuttuu.', false),
     }
   }
@@ -54,7 +62,7 @@ export const handler: Handler = async (event) => {
   if (fetchError || !reg) {
     return {
       statusCode: 404,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      headers,
       body: htmlPage('Ei löytynyt', 'Ilmoittautumista ei löytynyt tai linkki on vanhentunut.', false),
     }
   }
@@ -62,8 +70,8 @@ export const handler: Handler = async (event) => {
   if (reg.status === 'cancelled') {
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      body: htmlPage('Jo peruutettu', `${reg.first_name}, ilmoittautumisesi on jo peruutettu aiemmin.`, true),
+      headers,
+      body: htmlPage('Jo peruutettu', `${escapeHtml(reg.first_name)}, ilmoittautumisesi on jo peruutettu aiemmin.`, true),
     }
   }
 
@@ -76,17 +84,17 @@ export const handler: Handler = async (event) => {
   if (updateError) {
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      headers,
       body: htmlPage('Virhe', 'Peruutus epäonnistui. Yritä myöhemmin uudelleen.', false),
     }
   }
 
   return {
     statusCode: 200,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers,
     body: htmlPage(
       'Ilmoittautuminen peruutettu',
-      `${reg.first_name}, ilmoittautumisesi on peruutettu onnistuneesti. Voit sulkea tämän sivun.`,
+      `${escapeHtml(reg.first_name)}, ilmoittautumisesi on peruutettu onnistuneesti. Voit sulkea tämän sivun.`,
       true
     ),
   }

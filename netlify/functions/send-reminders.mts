@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
+import { escapeHtml } from '../lib/escape'
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL ?? ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
@@ -160,14 +161,14 @@ export const handler: Handler = async () => {
         const subject = `Muistutus: vuorosi huomenna – ${eventData.name}`
 
         const htmlBody = buildReminderHtml({
-          firstName: reg.first_name,
-          eventName: eventData.name,
-          taskName: task.name,
+          firstName: escapeHtml(reg.first_name),
+          eventName: escapeHtml(eventData.name),
+          taskName: escapeHtml(task.name),
           shiftStart: formatDate(shift.start_time),
           shiftEnd: formatDate(shift.end_time),
-          location: shift.location,
-          shiftNotes: shift.notes,
-          taskDescription: task.description,
+          location: shift.location ? escapeHtml(shift.location) : null,
+          shiftNotes: shift.notes ? escapeHtml(shift.notes) : null,
+          taskDescription: task.description ? escapeHtml(task.description) : null,
           cancelUrl,
         })
 

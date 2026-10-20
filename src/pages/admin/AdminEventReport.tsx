@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
+import { csvCell } from '../../lib/csv'
 import type { Event, Task, ShiftAvailability } from '../../lib/database.types'
 import { ArrowLeft, Download, Users, Clock, CalendarDays } from 'lucide-react'
 
@@ -112,7 +113,7 @@ export default function AdminEventReport() {
     const BOM = '\uFEFF'
     const header = 'Joukkue;Vuoroja;Ilmoittautuneet;Poissa;Läsnä;Työtunnit yhteensä'
     const rows = teamReports.map(r =>
-      `${r.teamName};${r.shiftCount};${r.totalRegistered};${r.totalNoShow};${r.totalPresent};${r.totalHours.toFixed(1)}`
+      `${csvCell(r.teamName)};${r.shiftCount};${r.totalRegistered};${r.totalNoShow};${r.totalPresent};${r.totalHours.toFixed(1)}`
     )
     rows.push(`YHTEENSÄ;${totals.shiftCount};${totals.totalRegistered};${totals.totalNoShow};${totals.totalPresent};${totals.totalHours.toFixed(1)}`)
 

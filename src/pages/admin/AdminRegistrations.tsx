@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import { supabase } from '../../lib/supabase'
+import { csvCell } from '../../lib/csv'
 import type { Registration } from '../../lib/database.types'
 import { Search, Download, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
@@ -179,7 +180,7 @@ export default function AdminRegistrations() {
       format(new Date(reg.created_at), 'dd.MM.yyyy HH:mm'),
     ])
 
-    const csv = [headers, ...rows].map(row => row.map(v => `"${v}"`).join(',')).join('\n')
+    const csv = [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
